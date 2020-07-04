@@ -31,11 +31,14 @@ exp_data <- exp_data %>%
 ### Traditional statistical power analysis
 library(pwr)
 effect_size <- ES.h(0.194,0.184)
-pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.05, power = 0.8, alternative = "greater")
-pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.1, power = 0.9, alternative = "greater")
+pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.05, 
+            power = 0.8, alternative = "greater")
+pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.1, 
+            power = 0.9, alternative = "greater")
 
 
-pwr.t.test(d = effect_size, n = NULL, sig.level = 0.05, power = 0.8, alternative = "greater")
+pwr.t.test(d = effect_size, n = NULL, sig.level = 0.05, 
+           power = 0.8, alternative = "greater")
 
 ### Single simulation for false positives (sample size = 2000)
 
