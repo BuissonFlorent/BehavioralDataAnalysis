@@ -165,7 +165,7 @@ model_nostrat <- lm(BPday_nostrat~sq_ft+tier+avg_review+group_nostrat,
                   data = sim_data)
 summary(model_nostrat)
 
-### Statistical significance analysis of historical data - repeated runs
+### Statistical significance analysis of historical data - repeated runs with constant sample size
 #options(warn=-1)
 Nloop <- 20
 set.seed(1234)
@@ -233,7 +233,7 @@ sim_data_summary %>%
   summarize(strat_coeff1_sig = sum(strat_pvalue1 < 0.1 & strat_coeff1 > 0)/n(),
             nostrat_coeff1_sig = sum(nostrat_pvalue1 < 0.1 & nostrat_coeff1 > 0)/n())
 
-### Statistical power analysis of historical data - repeated runs
+### Statistical power analysis of historical data - repeated runs with constant sample size
 
 Nloop <- 200
 set.seed(1234)
