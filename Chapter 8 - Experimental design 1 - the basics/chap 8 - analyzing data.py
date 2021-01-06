@@ -8,18 +8,12 @@ Created on Sun May 10 11:44:30 2020
 ##### 2. Data and libraries #####
 
 import os
-import pandas as pd
 
-#Data analysis libraries
+import pandas as pd
 import numpy as np
-import random
 from math import asin, sqrt
 import statsmodels.formula.api as smf
 import statsmodels.stats.power as ssp
-import statsmodels.stats.proportion as sspr
-
-#Graphical libraries
-import seaborn as sns
 
 
 #Libraries required to parallelize simulations
@@ -88,7 +82,8 @@ def decision_fun(dat_df, metric_fun, B = 100, conf_level = 0.9):
 decision_fun(exp_data_df, log_reg_fun)  
 
 ### Function for single simulation
-def single_sim_fun(Nexp, dat_df = hist_data_df, metric_fun = log_reg_fun, eff_size = 0.01, B = 100, conf_level = 0.9):
+def single_sim_fun(Nexp, dat_df = hist_data_df, metric_fun = log_reg_fun, 
+                   eff_size = 0.01, B = 100, conf_level = 0.9):
     
     #Adding predicted probability of booking
     hist_model = smf.logit('booked ~ age + gender + period', data = dat_df)
@@ -100,26 +95,35 @@ def single_sim_fun(Nexp, dat_df = hist_data_df, metric_fun = log_reg_fun, eff_si
     #Random assignment of experimental groups
     sim_data_df['oneclick'] = np.where(np.random.uniform(size=Nexp) <= 0.5, 0, 1)
     # Adding effect to treatment group
-    sim_data_df['pred_prob_bkg'] = np.where(sim_data_df.oneclick == 1, sim_data_df.pred_prob_bkg + eff_size, sim_data_df.pred_prob_bkg)
-    sim_data_df['booked'] = np.where(sim_data_df.pred_prob_bkg >= np.random.uniform(size=Nexp), 1, 0)
+    sim_data_df['pred_prob_bkg'] = np.where(sim_data_df.oneclick == 1, 
+                                            sim_data_df.pred_prob_bkg + eff_size, 
+                                            sim_data_df.pred_prob_bkg)
+    sim_data_df['booked'] = np.where(sim_data_df.pred_prob_bkg >= \
+                                     np.random.uniform(size=Nexp), 1, 0)
     
     #Calculate the decision (we want it to be 1)
-    decision = decision_fun(sim_data_df, metric_fun = metric_fun, B = B, conf_level = conf_level)
+    decision = decision_fun(sim_data_df, metric_fun = metric_fun, B = B, 
+                            conf_level = conf_level)
      
     return decision
 single_sim_fun(Nexp = 1000)  
    
  
 ### power simulation function
-def power_sim_fun(dat_df, metric_fun, Nexp, eff_size, Nsim, B = 100, conf_level = 0.9):
+def power_sim_fun(dat_df, metric_fun, Nexp, eff_size, Nsim, B = 100, 
+                  conf_level = 0.9):
     power_lst = []
     for i in range(Nsim):
         print("starting simulation number", i, "\n")
-        power_lst.append(single_sim_fun(Nexp = Nexp, dat_df = dat_df, metric_fun = metric_fun, eff_size = eff_size, B = B, conf_level = conf_level))
+        power_lst.append(single_sim_fun(Nexp = Nexp, dat_df = dat_df, 
+                                        metric_fun = metric_fun, 
+                                        eff_size = eff_size, B = B, 
+                                        conf_level = conf_level))
     power = np.mean(power_lst)
     return(power)
 
-power_sim_fun(dat_df=hist_data_df, metric_fun = log_reg_fun, Nexp = int(1e3), eff_size=0.01, Nsim=5)
+power_sim_fun(dat_df=hist_data_df, metric_fun = log_reg_fun, Nexp = int(4e4), 
+              eff_size=0.01, Nsim=20)
 
 #Alternative parallelized function for higher speed
 def opt_power_sim_fun(dat_df, metric_fun, Nexp, eff_size, Nsim, B = 100, conf_level = 0.9):
@@ -135,7 +139,6 @@ opt_power_sim_fun(dat_df=hist_data_df, metric_fun = log_reg_fun, Nexp = int(1e3)
 ##### Analyzing the results of the experiment #####
 
 ### Logistic regression
-import statsmodels.formula.api as smf
 model = smf.logit('booked ~ age + gender + oneclick', data = exp_data_df)
 res = model.fit()
 res.summary()

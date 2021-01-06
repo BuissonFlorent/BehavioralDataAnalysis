@@ -1,8 +1,6 @@
 ##### 2. Data and libraries #####
-library(pwr)
-library(Rlab)
 library(tidyverse)
-library(MBESS)
+library(pwr)
 library(boot)
 
 setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 8 - the basics")
@@ -46,7 +44,7 @@ exp_null_data <- hist_data %>%
 summary(glm(booked ~ oneclick + age + gender, 
             data = exp_null_data, family = binomial(link = "logit")))
 
-metric_fun <- function(dat){
+log_reg_fun <- function(dat){
   
   #Running logistic regression
   log_mod_exp <- glm(booked ~ oneclick + age + gender, 
@@ -57,70 +55,74 @@ metric_fun <- function(dat){
   
   return(metric)
 }
-#metric_fun(exp_null_data)
 
 ### Bootstrap CI function
-boot_CI_fun <- function(dat, metric_fun){
+boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
   #Setting the number of bootstrap samples
-  B <- 100
-  
   boot_metric_fun <- function(dat, J){
     boot_dat <- dat[J,]
     return(metric_fun(boot_dat))
   }
   boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
-  confint <- boot.ci(boot.out, conf = 0.90, type = c('perc'))
+  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
   CI <- confint$percent[c(4,5)]
   
   return(CI)
 }
-boot_CI_fun(exp_null_data, metric_fun)
 
 ### decision function
-decision_fun <- function(dat){
-  boot_CI <- boot_CI_fun(dat, metric_fun)
+decision_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  boot_CI <- boot_CI_fun(dat, metric_fun, B = B, conf.level = conf.level)
   decision <- ifelse(boot_CI[1]>0,1,0)
   return(decision)
 }
-decision_fun(exp_null_data)
 
-### Power simulation for N = 40,000 
+### Function for single simulation
 
-#Add predicted probability of booking to historical data
-hist_mod <- glm(booked ~ age + gender + period, 
-                family = binomial(link = "logit"), data = hist_data)
-hist_data <- hist_data %>%
-  mutate(pred_prob_bkg = hist_mod$fitted.values)
-
-#Definition of effect size
-es <- 0.01
-
-## Data generating function
-sim_data_gen_fun <- function(dat, es, N){
+single_sim_fun <- function(dat, metric_fun, Nexp, eff_size, B = 100, 
+                           conf.level = 0.9){
+  
+  #Adding predicted probability of booking
+  hist_mod <- glm(booked ~ age + gender + period, 
+                  family = binomial(link = "logit"), data = dat)
   sim_data <- dat %>%
-    slice_sample(n = N) %>%
-    mutate(oneclick = ifelse(runif(N) > 0.5,1,0)) %>%
-    mutate(oneclick=factor(oneclick, levels=c(0,1))) %>%
+    mutate(pred_prob_bkg = hist_mod$fitted.values) %>%
+    #Filtering down to desired sample size
+    slice_sample(n = Nexp) %>%
+    #Random assignment of experimental groups
+    mutate(oneclick = ifelse(runif(Nexp,0,1) <= 1/2, 0, 1)) %>%
+    mutate(oneclick = factor(oneclick, levels=c(0,1))) %>%
+    # Adding effect to treatment group
     mutate(pred_prob_bkg = ifelse(oneclick == 1, 
-                                  pred_prob_bkg + es, 
+                                  pred_prob_bkg + eff_size, 
                                   pred_prob_bkg)) %>%
-    mutate(booked = ifelse(pred_prob_bkg >= runif(N,0,1),1, 0))
-  return(sim_data)
+    mutate(booked = ifelse(pred_prob_bkg >= runif(Nexp,0,1),1, 0))
+
+  #Calculate the decision (we want it to be 1)
+  decision <- decision_fun(sim_data, metric_fun, B = B, 
+                           conf.level = conf.level)
+  return(decision)
 }
+single_sim_fun(hist_data, log_reg_fun, Nexp = 100, eff_size = 0.01, B = 40, 
+               conf.level = 0.9)
+
 
 ## power simulation function
-power_fun <- function(dat, es, N, Nsim){
+power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim, 
+                          B = 100, conf.level = 0.9){
   power_list <- vector(mode = "list", length = Nsim)
   for(i in 1:Nsim){
-    sim_data <- sim_data_gen_fun(dat=dat, es=es, N=N)
-    power_list[[i]] <- decision_fun(sim_data)
+    power_list[[i]] <- single_sim_fun(dat, metric_fun, Nexp, eff_size, 
+                                      B = B, conf.level = conf.level)
+
   }
   power <- mean(unlist(power_list))
   return(power)
 }
 
 set.seed(1234)
-power_fun(dat=hist_data, es=0.01, N=4e4, Nsim=20)
+power_sim_fun(dat=hist_data, metric_fun = log_reg_fun, Nexp = 4e4, 
+              eff_size=0.01, Nsim=10)
 
 ### Figure 8-3 Power simulations for various sample sizes
 
@@ -180,35 +182,35 @@ log_mod_exp <- glm(booked ~ oneclick + age + gender,
 summary(log_mod_exp)
 
 ### Calculating Bootstrap CI
-exp_boot_CI <- boot_CI_fun(exp_data, metric_fun)
+exp_boot_CI <- boot_CI_fun(exp_data, metric_fun = log_reg_fun)
 
 ### Calculating average difference in probabilities
-no_button <- exp_data %>% 
-  mutate(oneclick = 0) %>% 
-  mutate(oneclick = factor(oneclick, levels=c(0, 1))) %>%
-  select(age, gender, oneclick)
-button <- exp_data %>% 
-  mutate(oneclick = 1) %>% 
-  mutate(oneclick = factor(oneclick, levels=c(0, 1))) %>%
-  select(age, gender, oneclick)
-#Adding the predictions of the model 
-no_button <- no_button %>%
-  mutate(pred_mod = predict(object=log_mod_exp, newdata = no_button, type="response"))
-button <- button %>%
-  mutate(pred_mod = predict(object=log_mod_exp, newdata = button, type="response"))
-#Calculating average difference in probabilities
-diff <- button$pred_mod - no_button$pred_mod
-mean(diff)
+diff_prob_fun <- function(dat, reg_model = log_mod_exp){
+
+  no_button <- dat %>% 
+    mutate(oneclick = 0) %>% 
+    mutate(oneclick = factor(oneclick, levels=c(0, 1))) %>%
+    select(age, gender, oneclick)
+  button <- dat %>% 
+    mutate(oneclick = 1) %>% 
+    mutate(oneclick = factor(oneclick, levels=c(0, 1))) %>%
+    select(age, gender, oneclick)
+  #Adding the predictions of the model 
+  no_button <- no_button %>%
+    mutate(pred_mod = predict(object=reg_model, newdata = no_button, 
+                              type="response"))
+  button <- button %>%
+    mutate(pred_mod = predict(object=reg_model, newdata = button, 
+                              type="response"))
+  #Calculating average difference in probabilities
+  diff <- button$pred_mod - no_button$pred_mod
+  return(mean(diff))
+}
+diff_prob_fun(exp_data, reg_model = log_mod_exp)
 
 ### Calculating Bootstrap interval for this difference
-B <- 10000
-diff_metric_fun <- function(dat, J){
-  boot_dat <- dat[J]
-  return(mean(boot_dat))
-}
-boot.out <- boot(data=diff, statistic=diff_metric_fun, R=B)
-confint <- boot.ci(boot.out, conf = 0.998, type = c('perc'))
-CI <- confint$percent[c(4,5)]
+diff_CI <- boot_CI_fun(exp_data, diff_prob_fun)
+
 
 
 summary(exp_data %>% filter(oneclick == '0'))
