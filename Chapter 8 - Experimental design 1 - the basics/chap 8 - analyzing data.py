@@ -139,21 +139,34 @@ opt_power_sim_fun(dat_df=hist_data_df, metric_fun = log_reg_fun, Nexp = int(1e3)
 ##### Analyzing the results of the experiment #####
 
 ### Logistic regression
-model = smf.logit('booked ~ age + gender + oneclick', data = exp_data_df)
-res = model.fit()
+log_mod_exp = smf.logit('booked ~ age + gender + oneclick', data = exp_data_df)
+res = log_mod_exp.fit()
 res.summary()
 
 ### Calculating average difference in probabilities
 
-#Creating new copies of data
-no_button_df = exp_data_df[['age', 'gender']]
-no_button_df['oneclick'] = 0
-button_df = exp_data_df[['age', 'gender']]
-button_df['oneclick'] = 1
+### Calculating average difference in probabilities
+def diff_prob_fun(dat_df, reg_model = log_mod_exp):
+    
+    #Creating new copies of data
+    no_button_df = exp_data_df.loc[:, 'age':'gender']
+    no_button_df.loc[:, 'oneclick'] = 0
+    button_df = exp_data_df.loc[:,'age':'gender']
+    button_df.loc[:, 'oneclick'] = 1
+    
+    #Adding the predictions of the model 
+    no_button_df.loc[:, 'pred_bkg_rate'] = res.predict(no_button_df)
+    button_df.loc[:, 'pred_bkg_rate'] = res.predict(button_df)
+    
+    diff = button_df.loc[:,'pred_bkg_rate'] - no_button_df.loc[:,'pred_bkg_rate']
+    return diff.mean()
+    
+diff_prob_fun(exp_data_df, reg_model = log_mod_exp)
 
-#Adding the predictions of the model 
-no_button_df['pred_bkg_rate'] = res.predict(no_button_df)
-button_df['pred_bkg_rate'] = res.predict(button_df)
 
-diff = button_df['pred_bkg_rate'] - no_button_df['pred_bkg_rate']
-diff.mean()
+
+
+
+
+
+
