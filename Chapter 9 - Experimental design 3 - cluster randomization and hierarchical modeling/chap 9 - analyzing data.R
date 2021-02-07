@@ -1,299 +1,308 @@
 ##### Setup #####
-library(tidyverse)
+library(doParallel)
+library(ggpubr)
+library(binaryLogic)
+library(gtools)
 library(Rlab)
 library(lme4)
 library(lmerTest)
 library(blockTools)
 library(caret)
 library(scales)
+library(doParallel)
+library(nbpMatching) #To use 'optimal' algorithm in stratified randomization
+library(tidyverse)
 
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 10 - offline population-based exp")
+setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 9 - cluster randomization and hierarchical modeling")
 options(scipen=10)
 
 #Reading the data
-hist_data <- read_csv("chap10-historical_data.csv")
-exp_data <- read_csv("chap10-experimental_data.csv")
+hist_data <- read_csv("chap9-historical_data.csv")
+exp_data <- read_csv("chap9-experimental_data.csv")
 
 #Reformating the data
 hist_data <- hist_data %>%
   mutate(center_ID = factor(center_ID)) %>%
   mutate(rep_ID = factor(rep_ID)) %>%
-  mutate(reason = factor(reason))
+  mutate(reason = factor(reason)) %>%
+  select(-M6Spend)
 exp_data <- exp_data %>%
   mutate(center_ID = factor(center_ID, levels = levels(hist_data$center_ID))) %>%
   mutate(rep_ID = factor(rep_ID, levels = levels(hist_data$rep_ID))) %>%
   mutate(reason = factor(reason, levels = levels(hist_data$reason))) %>%
-  mutate(group = factor(group)) 
+  mutate(group = factor(group)) %>%
+  select(-M6Spend)
 
-##### Functions #####
+##### Introduction to hierarchical modeling #####
 
-#Generating the stratified random assignment by call center
-blocking_fct <- function(prel_data){
-  assgt_data <- prel_data %>%
-    select(-age,-reason) %>%
-    #Adding number of reps in each call center
-    group_by(center_ID, rep_ID) %>%
-    mutate(nreps = n()) %>%
-    ungroup() %>%
-    #Adding average call CSAT per call center
+# hlm_mod <- lmer(data=hist_data, call_CSAT ~ reason + age + (1|center_ID))
+# summary(hlm_mod)
+# hist_data %>%
+#   group_by(center_ID)%>%
+#   summarize(call_CSAT = mean(call_CSAT)) %>%
+#   summarize(sd = sd(call_CSAT))
+# 
+# hlm_mod2 <- lmer(data=hist_data, 
+#                  call_CSAT ~ reason + age + (1|center_ID/rep_ID),
+#                  control = lmerControl(optimizer ="Nelder_Mead"))
+# summary(hlm_mod2)
+# hist_data %>%
+#   group_by(rep_ID) %>%
+#   summarise(call_CSAT = mean(call_CSAT)) %>%
+#   summarise(sd = sd(call_CSAT))
+
+##### Determining random assignment and sample size/power #####
+
+#### General Functions ####
+
+hlm_metric_fun <- function(dat){
+  #Estimating treatment coefficient with hierarchical regression
+  hlm_mod <- lmer(data=dat, 
+                  call_CSAT ~ reason + age + group + (1|center_ID/rep_ID)
+                  #,control = lmerControl(optimizer ="Nelder_Mead")
+                  )
+  metric <- fixef(hlm_mod)["grouptreat"]
+  return(metric)
+}
+#hlm_metric_fun(exp_data)
+
+lm_metric_fun <- function(dat){
+  #Estimating treatment coefficient with hierarchical regression
+  lm_mod <- lm(data = dat, call_CSAT ~ reason + age + group)
+  summ <- summary(lm_mod)
+  metric <- summ$coefficients["grouptreat", "Estimate"]
+  return(metric)
+}
+#lm_metric_fun(exp_data)
+
+### Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B=20, conf.level=0.9){
+  
+  boot_vec <- sapply(1:B, function(x){
+    #cat("bootstrap iteration ", x, "\n")
+    metric_fun(slice_sample(dat, n = nrow(dat), replace = TRUE))})
+  boot_vec <- sort(boot_vec, decreasing = FALSE)
+  offset = round(B * (1 - conf.level) / 2)
+  CI <- c(boot_vec[offset], boot_vec[B+1-offset])
+  return(CI)
+}
+#boot_CI_fun(exp_data, hlm_metric_fun)
+
+
+### decision function
+decision_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  boot_CI <- boot_CI_fun(dat, metric_fun, B = B, conf.level = conf.level)
+  decision <- ifelse(boot_CI[1]>0,1,0)
+  return(decision)
+}
+#decision_fun(exp_data, hlm_metric_fun, B = 20, conf.level = 0.9)
+
+#### Random assignment ####
+
+### Function to prep the data
+strat_prep_fun <- function(dat){
+  #Extracting property-level variables
+  dat <- dat %>%
     group_by(center_ID) %>%
-    #Averaging over constant values for nreps, just to keep the number of reps in the summary
-    summarize(nreps = mean(nreps),
-              avg_call_CSAT = mean(call_CSAT)) %>%
-    #Rescaling variables
-    mutate(nreps = rescale(nreps),
-           avg_call_CSAT = rescale(avg_call_CSAT))
-  assgt <- assgt_data %>%
-    block( id.vars = c("center_ID"), n.tr = 2, 
-           algorithm = "naiveGreedy", distance = "euclidean") %>%
+    summarise(nreps = n_distinct(rep_ID),
+              avg_call_CSAT = mean(call_CSAT), 
+              avg_age = mean(age),
+              pct_reason_pmt = sum(reason == 'payment')/n()) %>%
+    ungroup()
+  
+  #Isolating the different components of our data
+  center_ID <- dat$center_ID  # Center identifier
+  dat <- dat %>% select(-center_ID)
+  num_vars <- dat %>%
+    #Selecting numeric variables
+    select_if(function(x) is.numeric(x)|is.integer(x)) 
+  
+  #Normalizing numeric variables
+  num_vars_out <- num_vars %>%
+    mutate_all(rescale)
+  
+  #Putting the variables back together
+  dat_out <- cbind(center_ID, num_vars_out)  %>%
+    mutate(center_ID = as.character(center_ID)) %>%
+    mutate_if(is.numeric, function(x) round(x, 4)) #Rounding for readability
+  
+  return(dat_out)
+}
+#prepped_data <- strat_prep_fun(hist_data)
+
+
+#Using a wrapper function to get the stratified pairs
+block_wrapper_fun <- function(dat){
+  
+  prepped_data <- strat_prep_fun(dat)
+  
+  #Getting stratified assignment
+  assgt <- prepped_data %>%
+    block(id.vars = c("center_ID"), n.tr = 2, 
+          algorithm = "optimal", distance = "euclidean") %>%
     assignment() 
   assgt <- assgt$assg$`1` 
   assgt <- assgt %>%
-    select(-Distance)
-  colnames(assgt) <- c("ctrl", "treat")
-  assgt <- gather(assgt,group, center_ID, 'ctrl':'treat')%>%
-    mutate(group = as.factor(group)) %>%
-    mutate(center_ID = factor(center_ID, levels = levels(assgt_data$center_ID)))
+    select(-'Distance')
   
-  dat_final <- full_join(assgt_data, assgt, by="center_ID") %>%
-    select(-nreps,-avg_call_CSAT)
-  
-  return(dat_final)
+  assgt <- as.matrix(assgt) %>% apply(2, function(x) as.integer(x))
+  return(assgt)
 }
+#stratified_pairs <- block_wrapper_fun(hist_data)
+#stratified_pairs
 
-#Generating simulated data
-sim_data_gen_fct <- function(reps, prel_data, Ncalls_rep = 250, Nloops = 10, effect = 0.5){
-  options(warn=-1)
-  sim_list <- list()
+##### Simulation function #####
+power_sim_fun <- function(dat, metric_fun, Nexp = 1000, eff_size = 0, 
+                          B = 100, conf.level = 0.9){
   
-  for(i in 1:Nloops){
-    if(i%% 10 == 0) cat("Iteration number", i, "\n")
-    
-    #Generating random assignment
-    blocked_assgt <- blocking_fct(prel_data) 
-    
-    #Simulating experimental data with no true effect
-    sim_data <- prel_data %>%
-      #Sampling historical data at the rep level
-      group_by(center_ID, rep_ID) %>% sample_n(Ncalls_rep, replace = TRUE) %>% ungroup() %>%
-      #Assigning experimental group 
-      full_join(blocked_assgt, by = "center_ID")
+  #Extract the stratified pairs
+  stratified_pairs <- block_wrapper_fun(dat)
+  
+  Npairs <- nrow(stratified_pairs)
+  Nmonths <- length(unique(dat$month))
+  Nperm <- 2^Npairs
+  Nsim <- Nmonths * Nperm
+  
+  power_list <- vector(mode = "list", length = Nsim)
+  i <- 1
+  for(m in unique(dat$month)){
+    #Sample down the data
+    sample_data <- filter(dat, month==m) %>%
+      dplyr::group_by(rep_ID) %>%
+      slice_sample(n = Nexp) %>%
+      dplyr::ungroup()
+    for(perm in 0:(Nperm-1)){
+      cat("starting simulation number", i, "\n")
+      bin_str <- as.binary(perm, n=Npairs)
+      idx <- matrix(c(1:NPairs, bin_str), nrow = Npairs)
+      idx[,2] <- idx[,2] + 1
       
-    #Estimating treatment coefficient and p-value with standard regression
-    lm_mod0 <- lm(call_CSAT ~ age + reason + group + center_ID + rep_ID, data = sim_data)
-    
-    lm_est0_coeff <- summary(lm_mod0)$coefficients[4,1]
-    lm_est0_pvalue <- summary(lm_mod0)$coefficients[4,4]
-    
-    #Estimating treatment coefficient and p-value with hierarchical regression
-    h_mod0 <- lmer(data=sim_data, call_CSAT ~ reason + age + group + (1|center_ID/rep_ID))
-    
-    h_est0_coeff <- fixef(h_mod0)["grouptreat"]
-    h_est0_pvalue <- summary(h_mod0)$coefficients[4,5]
-    
-    #Adding true effect
-    sim_data <- sim_data %>%
-      mutate(call_CSAT = call_CSAT + ifelse(group == "treat", effect,0)) %>%
-      mutate(call_CSAT = ifelse(call_CSAT < 0, 0, call_CSAT)) %>%
-      mutate(call_CSAT = ifelse(call_CSAT > 10, 10, call_CSAT))
-    
-    #Estimating treatment coefficient and p-value with standard regression
-    lm_mod1 <- lm(call_CSAT ~ age + reason + group + center_ID + rep_ID, data = sim_data)
-    
-    lm_est1_coeff <- summary(lm_mod1)$coefficients[4,1]
-    lm_est1_pvalue <- summary(lm_mod1)$coefficients[4,4]
-    
-    #Estimating treatment coefficient and p-value with hierarchical regression
-    h_mod1 <- lmer(data=sim_data, call_CSAT ~ reason + age + group + (1|center_ID/rep_ID))
-    
-    h_est1_coeff <- fixef(h_mod1)["grouptreat"]
-    h_est1_pvalue <- summary(h_mod1)$coefficients[4,5]
-    
-    
-    #Gathering results
-    sim_list[[i]] <- data.frame(
-      #Coefficients and p-values for null effect
-      lm_est0_coeff = lm_est0_coeff,
-      lm_est0_pvalue = lm_est0_pvalue,
-      h_est0_coeff = h_est0_coeff,
-      h_est0_pvalue = h_est0_pvalue,
-      #Coefficients and p-values for true effect
-      lm_est1_coeff = lm_est1_coeff,
-      lm_est1_pvalue = lm_est1_pvalue,
-      h_est1_coeff = h_est1_coeff,
-      h_est1_pvalue = h_est1_pvalue
-    )
+      treat <- stratified_pairs[idx]
+      
+      sim_data <- sample_data %>%
+        mutate(group = ifelse(center_ID %in% treat, 'treat', 'ctrl')) %>%
+        mutate(group = as.factor(group))
+      
+      sim_data <- sim_data %>%
+        mutate(call_CSAT = ifelse(group == 'treat', 
+                                  call_CSAT + eff_size, call_CSAT)) %>%
+        #Ensuring that call CSAT remains between 0 and 10
+        mutate(call_CSAT = pmax(call_CSAT, 0)) %>%
+        mutate(call_CSAT = pmin(call_CSAT, 10))
+      
+      sim_CI <- boot_CI_fun(sim_data, hlm_metric_fun)
+      cat(sim_CI, "\n")
+      power_list[[i]] <- sim_CI
+      #Calculate the decision
+      #power_list[[i]] <- decision_fun(sim_data, metric_fun, B = B, conf.level = conf.level)
+      i <- i + 1
+    }
   }
-  sim_data_summary <- bind_rows(sim_list)
-  options(warn=0)
-  return(sim_data_summary)
+  #power <- mean(unlist(power_list))
+  return(power_list)
 }
 
-##### Power analysis #####
+# ### Calculating the significance for various confidence levels 
+# fun_lst <- c('block_wrapper_fun', 'hlm_metric_fun', 'boot_CI_fun',  'decision_fun', 
+#              'power_sim_fun')
+# pckg_lst <- c('tidyverse', 'caret', 'binaryLogic', 'lme4', 'lmerTest', 'scales', 'blockTools')
+# conf.levels <- c(0.5, 0.9, 0.94, 0.98)
+# 
+# registerDoParallel()
+# sig_res_list <- foreach(conf=conf.levels, .export=fun_lst, .packages=pckg_lst) %dopar% {
+#   power_sim_fun(hist_data, hlm_metric_fun, Nexp=1e3, eff_size=0, B = 200, conf.level = conf)
+# }
+# stopImplicitCluster()
+# 
+# #Template code to extract the data for one of the confidence levels
+# sig_list0.50 <- sig_res_list[1]
+# sig_dat0.50 <- tibble(
+#   lower_bound = matrix(data = unlist(sig_list0.50), ncol = 2, byrow = TRUE)[,1], 
+#   upper_bound = matrix(data = unlist(sig_list0.50), ncol = 2, byrow = TRUE)[,2],
+#   conf.level = 0.50,
+#   eff_size = 0
+# )
 
-#Statistical power analysis
-library(pwr)
-s <- sd(hist_data$call_CSAT)
+#Loading the saved output from the simulations
+sig_dat <- read_csv("sig_dat.csv")
 
-pwr.t.test(d = 0.24, n = 198528/2, sig.level = 0.1, power = NULL, alternative = "greater")
-pwr.t.test(d = 0.24, n = 5000/2, sig.level = 0.1, power = NULL, alternative = "greater")
+ggplot(sig_dat %>% filter(conf.level %in% c(0.5,0.98)), aes(x=lower_bound, y=upper_bound, group = factor(conf.level))) +
+  geom_point(alpha = 0.5, aes(color=factor(conf.level))) + 
+  geom_abline(intercept = 0, slope = 1) +
+  xlim(c(-0.15,0.15)) + ylim(c(-0.15,0.15))
 
-### Simulated power analysis
+ggplot(sig_dat %>% filter(conf.level==0.90) %>% arrange(lower_bound), aes(y=1:96)) + 
+  geom_linerange(aes(xmin=lower_bound, xmax=upper_bound)) +
+  geom_vline(xintercept = 0, col='red') +
+  ylab("Ordered confidence intervals") +
+  xlab("Coefficient for experimental treatment")
 
-sim_data_summary_0.5_1000 <- sim_data_gen_fct(reps, hist_data, Ncalls_rep = 1000, Nloops = 100, effect = 0.5)
-summary(sim_data_summary)
-par(mfrow=c(2, 4))
-hist(sim_data_summary$lm_est0_coeff, xlim = c(-5, 5))
-hist(sim_data_summary$lm_est0_pvalue)
-hist(sim_data_summary$h_est0_coeff, xlim = c(-1, 1.2))
-hist(sim_data_summary$h_est0_pvalue, xlim = c(0, 1))
-hist(sim_data_summary$lm_est1_coeff, xlim = c(-5, 5))
-hist(sim_data_summary$lm_est1_pvalue)
-hist(sim_data_summary$h_est1_coeff, xlim = c(-1, 1.2))
-hist(sim_data_summary$h_est1_pvalue, xlim = c(0, 1))
+### Building the power curve for various effect sizes 
 
-#Plotting empirical statistical significance
-par(mfrow=c(1,2))
-with(sim_data_summary, plot(lm_est0_coeff, lm_est0_pvalue, ylim=c(0,1),
-                            main = "empirical stat. sig. with standard model", 
-                            xlab = "estimated coefficient for treatment", 
-                            ylab = "estimated p-value"))
-abline(h=0.1, col='red')  
-with(sim_data_summary, plot(h_est0_coeff, h_est0_pvalue, ylim=c(0,1),
-                            main = "empirical stat. sig. with hierarchical model", 
-                            xlab = "estimated coefficient for treatment", 
-                            ylab = "estimated p-value"))
-abline(h=0.1, col='red')
-par(new = F)
+# #Optimized function
+# fun_lst <- c('block_wrapper_fun', 'hlm_metric_fun', 'boot_CI_fun',  'decision_fun', 
+#              'power_sim_fun')
+# pckg_lst <- c('tidyverse', 'caret', 'binaryLogic', 'lme4', 'lmerTest', 'scales', 'blockTools')
+# eff_sizes <- c(0.125, 0.25, 0.50, 0.625, 0.75, 0.875, 1)
+# 
+# registerDoParallel()
+# ES_res_list <- foreach(ES=eff_sizes, .export=fun_lst, .packages=pckg_lst) %dopar% {
+#   power_sim_fun(hist_data, hlm_metric_fun, Nexp=1e3, eff_size=ES, B = 20, conf.level = 0.9)
+# }
+# stopImplicitCluster()
+# 
+# #Template code to extract the data for one of the effect sizes
+# ES_list0.125 <- ES_res_list[1]
+# ES_dat0.125 <- tibble(
+#   lower_bound = matrix(data = unlist(ES_list0.125), ncol = 2, byrow = TRUE)[,1], 
+#   upper_bound = matrix(data = unlist(ES_list0.125), ncol = 2, byrow = TRUE)[,2],
+#   conf.level = 0.9,
+#   eff_size = 0.125
+# )
 
-#Plotting empirical statistical power
-par(mfrow=c(1,2))
-with(sim_data_summary, plot(lm_est1_coeff, lm_est1_pvalue, ylim=c(0,1),
-                            main = "empirical stat. power with standard model", 
-                            xlab = "estimated coefficient for treatment", 
-                            ylab = "estimated p-value"))
-abline(h=0.1, col='red')  
-with(sim_data_summary, plot(h_est1_coeff, h_est1_pvalue, ylim=c(0,1),
-                            main = "empirical stat. power with hierarchical model", 
-                            xlab = "estimated coefficient for treatment", 
-                            ylab = "estimated p-value"))
-abline(h=0.1, col='red')
-par(new = F)
-
-#Determining statistical power of models
-sim_data_summary %>%
-  summarize(lm_coeff_pow = sum(lm_est1_pvalue < 0.1 & lm_est1_coeff > 0)/n(),
-            h_coeff_pow = sum(h_est1_pvalue < 0.1 & h_est1_coeff > 0)/n())
-
-
-
-##### Analyzing historical data #####
-
-library(lme4)
-library(lmerTest)
-h_mod <- lmer(data=hist_data, call_CSAT ~ reason + age + (1|center_ID))
-summary(h_mod)
-
-#Checking the standard deviation of data between call centers
-hist_data %>%
-  group_by(center_ID)%>%
-  summarize(call_CSAT = mean(call_CSAT)) %>%
-  summarize(sd = sd(call_CSAT))
-
-##### Simulating new data #####
-
-#Sampling the data
-set.seed(1234)
-ptm <- proc.time()
-sim_list <- list()
-
-#Simulation loop 
-Nloop <- 200
-for(i in 1:Nloop){
-  cat("Loop number ", i, " of ", Nloop, "\n")
-  true_effect <- 1
-  
-  sim_data <- hist_data %>%
-    #Create random allocation 
-    group_by(center_ID) %>%
-    mutate(grp_key = sample(c(1:20), 1, replace = FALSE)) %>%
-    mutate(group = ifelse(grp_key <= 10, "c", "t")) %>%
-    ungroup() %>%
-    #Sample 200 calls per rep
-    group_by(center_ID, rep_ID) %>%
-    sample_n(400, replace = TRUE) %>%
-    ungroup %>%
-    #Add the impact of the treatment
-    mutate(call_CSAT = call_CSAT + ifelse(group == "t", true_effect,0)) %>%
-    mutate(call_CSAT = ifelse(call_CSAT > 10, 10, call_CSAT)) %>%
-    mutate(group = factor(group))
-  
-  #Estimated coefficient for treatment with standard regression
-  mod <- lm(call_CSAT ~ age + reason + group + center_ID + rep_ID, data = sim_data)
-  #head(summary(mod)$coefficients, 5)
-  
-  lm_est <- summary(mod)$coefficients[4,1]
-  
-  h_mod0 <- lmer(data=sim_data, call_CSAT ~ reason + age + group + (1|center_ID/rep_ID))
-  #summary(h_mod0)
-  
-  lmer_est <- fixef(h_mod0)["groupt"]
-  
-  sim_list[[i]] <- data.frame(
-    true_effect = true_effect,
-    lm_est = lm_est,
-    lmer_est = lmer_est
-  )
-}
-sim_data_summary <- bind_rows(sim_list)
-proc.time() - ptm
-
-head(sim_data_summary)
-summary(sim_data_summary)
-
-#Look at results
-#Plotting relationship in whole dataset
-par(mfrow=c(2,1))
-hist(sim_data_summary$lm_est, 
-     breaks = seq(from = -5, to = 5, by = 0.5), 
-     main = "Distribution of estimated coefficients for standard linear model", 
-     xlab = "Estimated treatment coefficient",
-     xlim = c(-8, 8))
-abline(v=0.5, col='red')
-hist(sim_data_summary$lmer_est, 
-     breaks = seq(from = -5, to = 5, by = 0.5), 
-     main = "Distribution of estimated coefficients for hierarchical linear model", 
-     xlab = "Estimated treatment coefficient",
-     xlim = c(-8, 8))
-abline(v=0.5, col='red')
-par(new = F)
-
-#Saving data here for future analyses
-write.csv(sim_data, "sim_data.csv")
-
-#Adding decision criteria
-sim_data_summary <- sim_data_summary %>%
-  mutate(lm_TP = ifelse(true_effect >= 0.5 & lm_est >= 0.5,1,0)) %>%
-  mutate(lm_FP = ifelse(true_effect < 0.5 & lm_est >= 0.5,1,0)) %>%
-  mutate(lm_TN = ifelse(true_effect < 0.5 & lm_est < 0.5,1,0)) %>%
-  mutate(lm_FN = ifelse(true_effect >= 0.5 & lm_est < 0.5,1,0)) %>%
-  mutate(lmer_TP = ifelse(true_effect >= 0.5 & lmer_est >= 0.5,1,0)) %>%
-  mutate(lmer_FP = ifelse(true_effect < 0.5 & lmer_est >= 0.5,1,0)) %>%
-  mutate(lmer_TN = ifelse(true_effect < 0.5 & lmer_est < 0.5,1,0)) %>%
-  mutate(lmer_FN = ifelse(true_effect >= 0.5 & lmer_est < 0.5,1,0))
-
-with(sim_data,table(lm_TP, lmer_TP))
+#Loading the saved output from the simulations
+ES_dat <- read_csv("ES_dat.csv")
 
 
+ggplot(ES_dat, aes(x=lower_bound, y=upper_bound)) +
+  geom_jitter(alpha = 0.5, aes(color=eff_size)) + 
+  geom_abline(intercept = 0, slope = 1)
 
+power_dat <- ES_dat %>%
+  group_by(eff_size)  %>%
+  summarise(power = sum(lower_bound > 0)/n()) %>%
+  ungroup() %>%
+  rbind(sig_dat %>% filter(conf.level == 0.90) %>%
+          group_by(eff_size)  %>%
+          summarise(power = sum(lower_bound > 0)/n()))
+power_dat
 
- 
+ggplot(power_dat, aes(x = eff_size, y = power)) +
+  geom_point() + ylim(c(0,1)) + xlab("effect size") +
+  geom_line(data = power_dat %>% filter(eff_size != 0)) + 
+  geom_label(x=0.010, y=0.555, label="significance") +
+  geom_hline(yintercept = 0.80, col = 'red')
 
+power_dat2 <- ES_dat %>%
+  group_by(eff_size)  %>%
+  summarise(power = sum(lower_bound > 0.25)/n()) %>%
+  ungroup() %>%
+  rbind(sig_dat %>% filter(conf.level == 0.90) %>%
+          group_by(eff_size)  %>%
+          summarise(power = sum(lower_bound > 0.25)/n()))
+power_dat2
 
-
+ggplot(power_dat2, aes(x = eff_size, y = power)) +
+  geom_point() + ylim(c(0,1)) + xlab("effect size") +
+  geom_line(data = power_dat2 %>% filter(eff_size != 0)) + 
+  geom_label(x=0.010, y=0.355, label="significance") +
+  geom_hline(yintercept = 0.80, col = 'red')
 
 ##### Analyzing experimental data #####
 
-h_mod <- lmer(data=exp_data, call_CSAT ~ reason + age + group + (1|center_ID))
-summary(h_mod)
+# coeff <- hlm_metric_fun(exp_data)
+# print(coeff)
+# 
+# hlm_CI <- boot_CI_fun(exp_data, hlm_metric_fun)
+# print(hlm_CI)
