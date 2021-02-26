@@ -12,13 +12,13 @@ library(tidyverse)
 library(car) #For vif diagnostic function
 library(ggpubr) #For function ggrrange
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II Analyzing observational data/Chapter 5 - Building CDs from scratch")
+setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II - CAUSAL DIAGRAMS AND DECONFOUNDING/Chapter 3 - Building CDs from scratch")
 
 set.seed(1234)
 options(scipen=10)
 
 #Loading the data
-dat <- read_csv("chap5-hotel_booking_case_study.csv", 
+dat <- read_csv("chap3-hotel_booking_case_study.csv", 
                 col_types = cols(
                   NRDeposit = col_factor(),
                   IsCanceled = col_factor(),
@@ -53,18 +53,36 @@ with(dat, prop.table(table(NRDeposit, IsCanceled), 1))
 
 with(dat, rcompanion::cramerV(NRDeposit, IsCanceled))
 
+#### Calculating correlation table for all numeric variables
+library(corrplot)
+
+dat <- dat %>%
+  rename(CustTyp= CustomerType) %>%
+  rename(DistCh = DistributionChannel) %>%
+  rename(RepGst = IsRepeatedGuest) %>%
+  rename(MktSgmt = MarketSegment) %>%
+  rename(IsCanc = IsCanceled) %>%
+  rename(PrevCan = PreviousCancellations) %>%
+  rename(NRDep = NRDeposit)
+
+num_dat <- dat %>%
+  mutate(NRDep = as.integer(NRDep)) %>%
+  mutate(IsCanc = as.integer(IsCanc)) %>%
+  mutate(PrevCan = as.integer(PrevCan)) %>%
+  mutate(RepGst = as.integer(RepGst)) %>%
+  select_if(function(x) is.numeric(x)|is.integer(x))
+
+num_cor <- cor(num_dat)
+num_cor
+corrplot(num_cor)
+corrplot.mixed(num_cor, lower.col = "black", number.cex = .7)
+
+
+
 ### Calculating correlation table for all categorical variables
 
 cat_corr_fun <- function(dat){
   # Renaming variables to shorten them
-  dat <- dat %>%
-    rename(CustTyp= CustomerType) %>%
-    rename(DistCh = DistributionChannel) %>%
-    rename(RepGst = IsRepeatedGuest) %>%
-    rename(MktSgmt = MarketSegment) %>%
-    rename(IsCanc = IsCanceled) %>%
-    rename(PrevCan = PreviousCancellations) %>%
-    rename(NRDep = NRDeposit)
   
   #Going through all categorical variables
   corr_list <- list()
@@ -84,71 +102,38 @@ cat_corr_fun <- function(dat){
   }
   corr_df = bind_rows(corr_list) %>% 
     spread(varJ, corr)
-  return(corr_df)
-}
-corr_df <- cat_corr_fun(dat)
-corr_df
-
-#Removing quarter variable as it is uncorrelated with others
-dat <- dat %>%
-  select(-Quarter)
-
-### Numerical variables
-
-## Looking at time trends
-time_plot_fun <- function(){
-  dat_time <- dat %>%
-    group_by(Year) %>%
-    summarise(Cancel_rate = mean(IsCanceled==1),
-              NRDeposit_rate = mean(NRDeposit==1),
-              Avg_child_bab = mean(Children),
-              Avg_ADR = mean(ADR)
-    ) 
-  time_p1 <- ggplot(dat_time, aes(x=Year, y=Avg_ADR)) + 
-    geom_line() + geom_point() + theme(axis.text.x=element_blank()) + 
-    ylab("Average ADR") + ylim(c(90,120))
-  time_p2 <- ggplot(dat_time, aes(x=Year, y=Avg_child_bab)) + 
-    geom_line() + geom_point() + theme(axis.text.x=element_blank()) + 
-    ylab("Average number of children") + ylim(c(0.1,0.2))
-  time_p3 <- ggplot(dat_time, aes(x=Year, y=NRDeposit_rate)) + 
-    geom_line() + geom_point() + theme(axis.text.x=element_blank()) + 
-    ylab("% of non-refundable deposits") + ylim(c(0.01,0.02))
-  time_p4 <- ggplot(dat_time, aes(x=Year, y=Cancel_rate)) + 
-    geom_line() + geom_point() + theme(axis.text.x=element_blank()) + 
-    ylab("Cancellation rate") + ylim(c(0.2,0.4))
   
-  ggarrange(time_p1, time_p2, time_p3,time_p4, ncol = 4)
+  corr_df <- corr_df %>%
+    relocate(NRDep, .after = varI) %>%
+    mutate(varI = as.character(varI))
+  
+  cat_corr_mat <- as.matrix(corr_df %>% select(-varI))
+  row.names(cat_corr_mat) <- corr_df$varI
+  
+  return(cat_corr_mat)
 }
-time_plot_fun()
 
-#NRDeposit
-summary(glm(NRDeposit~Children+Year, 
-            data=dat, family = binomial(link = "logit")))
-summary(glm(NRDeposit~ADR+Year, 
-            data=dat, family = binomial(link = "logit")))
+cat_corr_mat <- cat_corr_fun(dat)
 
-#IsCanceled
-summary(glm(IsCanceled~Children+Year, 
-            data=dat, family = binomial(link = "logit")))
-summary(glm(IsCanceled~ADR+Year, 
-            data=dat, family = binomial(link = "logit")))
+corrplot.mixed(cat_corr_mat, lower.col = "black", number.cex = .7)
 
-#Relationship between ADR and number of children
-with(dat,boxplot(ADR~Children, xlab="Number of children"))
+##### Correlations between numeric and categorical variables #####
 
-#Filtering out large numbers of children
-dat <- dat %>%
-  filter(Children < 4)
+dat %>% group_by(CustTyp) %>% summarize(ADR = mean(ADR))
+f <- dat %>% group_by(Country) %>% summarize(Year = mean(Year))
 
+ggplot(data=dat, aes(x=CustTyp, y = Year)) +geom_boxplot()
+
+summary(lm(Year~CustTyp, data=dat))
 
 ##### Regression analysis #####
 
 #Single explanatory variable
-mod1 <- glm(IsCanceled ~ NRDeposit, 
+mod1 <- glm(IsCanc ~ NRDep, 
             data = dat, family = binomial(link = "logit"))
 summary(mod1)
 
 #Complete model
-mod_all <- glm(IsCanceled ~ ., 
+mod_all <- glm(IsCanc ~ ., 
                    data = dat, family = binomial(link = "logit"))
 summary(mod_all)

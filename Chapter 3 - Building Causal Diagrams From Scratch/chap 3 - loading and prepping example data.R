@@ -6,7 +6,7 @@
 ## and gets it prepped for analysis
 
 library(tidyverse)
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II Analyzing observational data/Chapter 5 - Building CDs from scratch")
+setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II - CAUSAL DIAGRAMS AND DECONFOUNDING/Chapter 3 - Building CDs from scratch")
 
 #Loading the datasets
 data_loading_fun <- function(){
@@ -130,4 +130,4 @@ dat <- dat %>%
          Quarter, Year)
 
 #Saving the prepped data
-write_csv(dat, "chap5-hotel_booking_case_study.csv")
+write_csv(dat, "chap3-hotel_booking_case_study.csv")
