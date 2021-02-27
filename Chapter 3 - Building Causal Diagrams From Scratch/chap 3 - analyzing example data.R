@@ -11,8 +11,11 @@ library(rcompanion) # For Cramer V correlation coefficient
 library(tidyverse)
 library(car) #For vif diagnostic function
 library(ggpubr) #For function ggrrange
+library(rstudioapi)
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II - CAUSAL DIAGRAMS AND DECONFOUNDING/Chapter 3 - Building CDs from scratch")
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
 
 set.seed(1234)
 options(scipen=10)

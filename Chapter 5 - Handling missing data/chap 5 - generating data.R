@@ -7,10 +7,12 @@ library(VIM) # For visualization function md.pattern
 library(reshape) #For function melt
 library(GGally) # For visualization function ggpairs
 library(beepr) # For sound function beep()
+library(rstudioapi)
 
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
 
-
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Chapter 3 - missing data and selection bias")
 options(scipen=100)
 
 ##### Functions definition #####

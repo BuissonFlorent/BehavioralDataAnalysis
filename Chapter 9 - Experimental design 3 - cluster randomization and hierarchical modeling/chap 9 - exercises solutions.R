@@ -10,7 +10,11 @@ library(lme4)
 
 ###### Exercise 1 #####
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II Analyzing observational data/Chapter 5 - Building CDs from scratch")
+library(rstudioapi)
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
 
 set.seed(1234)
 options(scipen=10)

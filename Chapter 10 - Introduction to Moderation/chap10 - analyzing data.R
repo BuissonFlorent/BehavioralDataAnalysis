@@ -17,7 +17,11 @@ library(Rfast) #For function lmfit
 library(parallel)
 library(doParallel)
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part IV Advanced tools/Chapter 11 - Introduction to moderation")
+library(rstudioapi)
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
 
 set.seed(1234)
 options(scipen=10)

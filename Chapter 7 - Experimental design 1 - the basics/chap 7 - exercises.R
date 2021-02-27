@@ -9,8 +9,12 @@ options(scipen=10)
 library(pwr)
 library(tidyverse)
 library(haven) #For function read_dta
+library(rstudioapi)
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design")
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
 
 data <- read_dta(file = "2004_Bertrand_Mullainathan.dta")
 

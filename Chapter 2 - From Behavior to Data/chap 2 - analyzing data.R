@@ -1,6 +1,6 @@
 #################################
 ##### This script analyzes the simulated data used in chapter 2, 
-##### Behaviors, Causality and Prediction
+##### From Behavior to Data
 #################################
 
 ##### Setup #####
@@ -10,7 +10,10 @@ options(scipen=10)
 library(tidyverse)
 library(ggpubr) # Enabling multiplots w function ggarrange
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/transfered to Github")
+library(rstudioapi)
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
 
 ##### First example: stand data #####
 

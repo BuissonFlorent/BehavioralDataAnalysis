@@ -3,8 +3,12 @@ library(Rlab)
 library(tidyverse)
 library(ggplot2)
 library(ggpubr)
+library(rstudioapi)
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part II Analyzing observational data/Chapter 7 - Measurement and randomness")
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
 options(scipen=10)
 
 ### Data generation

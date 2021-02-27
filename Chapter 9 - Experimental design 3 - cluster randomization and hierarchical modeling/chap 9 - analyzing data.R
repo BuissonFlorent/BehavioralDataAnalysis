@@ -12,9 +12,11 @@ library(scales)
 library(doParallel)
 library(nbpMatching) #To use 'optimal' algorithm in stratified randomization
 library(tidyverse)
+library(rstudioapi)
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
 
-
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 9 - cluster randomization and hierarchical modeling")
 options(scipen=10)
 
 #Reading the data

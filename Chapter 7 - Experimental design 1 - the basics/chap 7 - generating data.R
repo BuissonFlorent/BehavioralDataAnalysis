@@ -1,8 +1,12 @@
 ##### Setup #####
 library(Rlab)
 library(tidyverse)
+library(rstudioapi)
 
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 8 - online streaming exp")
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
 
 set.seed(1234)
 options(scipen=10)

@@ -9,11 +9,13 @@
 library(tidyverse)
 library(ggpubr)
 library(boot)
+library(rstudioapi)
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
 
-#Loading the data from the chapter on moderation, then setting the right folder
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part IV Advanced tools/Chapter 11 - Introduction to moderation")
+#Loading the data from the chapter on moderation
 hist_data <- read_csv("chap11-historical_data.csv")
-setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part IV Advanced tools/Chapter 12 - Mediation and Instrumental Variables")
 
 #Formatting the data
 hist_data <- hist_data %>%
