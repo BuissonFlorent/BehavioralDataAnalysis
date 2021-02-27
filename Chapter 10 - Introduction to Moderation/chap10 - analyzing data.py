@@ -23,8 +23,6 @@ ols("duration~play_area * children", data=hist_data_df).fit().summary()
 
 ##### How to apply moderation #####
 
-#### When to look for moderation ####
-
 #Code to convert age to its quartiles
 
 hist_data_df['age_quart'] = pd.cut(hist_data_df['age'], 4, 

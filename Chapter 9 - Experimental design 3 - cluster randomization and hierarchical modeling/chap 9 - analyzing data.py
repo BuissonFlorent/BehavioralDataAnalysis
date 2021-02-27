@@ -32,21 +32,21 @@ del(exp_data_df['M6Spend'])
 
 ##### Introduction to hierarchical modeling #####
 
-# #Hierarchical analysis of historical data with center ID only as clustering variable
-# import statsmodels.formula.api as sm
-# mixed = sm.mixedlm("call_CSAT ~ reason + age", data = hist_data_df, 
-#                    groups = hist_data_df["center_ID"])
-# print(mixed.fit().summary())
+#Hierarchical analysis of historical data with center ID only as clustering variable
+import statsmodels.formula.api as sm
+mixed = sm.mixedlm("call_CSAT ~ reason + age", data = hist_data_df, 
+                   groups = hist_data_df["center_ID"])
+print(mixed.fit().summary())
 
 #Hierarchical analysis of historical data with center ID and rep ID 
-#as clustering variable
-# vcf = {"rep_ID": "0+C(rep_ID)"}
-# mixed2 = sm.mixedlm("call_CSAT ~ reason + age", 
-#                     data = hist_data_df, 
-#                     groups = hist_data_df["center_ID"],
-#                     re_formula='1',
-#                     vc_formula=vcf)
-# print(mixed2.fit().summary())
+as clustering variable
+vcf = {"rep_ID": "0+C(rep_ID)"}
+mixed2 = sm.mixedlm("call_CSAT ~ reason + age", 
+                    data = hist_data_df, 
+                    groups = hist_data_df["center_ID"],
+                    re_formula='1',
+                    vc_formula=vcf)
+print(mixed2.fit().summary())
 
 
 
