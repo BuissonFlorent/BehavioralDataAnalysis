@@ -10,7 +10,6 @@ Created on Sat Jun 13 10:07:24 2020
 ##### Handling Missing Data
 #################################
 
-import os
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
@@ -20,13 +19,10 @@ from statsmodels.formula.api import ols
 import seaborn as sn
 import matplotlib.pyplot as plt
 
-
-os.chdir('C:\\Users\\Florent\\Dropbox\\Synchronised\\Work_and_projects\\Behavioral data science book\\R scripts\\Chapter 3 - missing data and selection bias')
-
 #Loading the data
-complete_data_df = pd.read_csv("chap3-complete_data-v2.csv")
-available_data_df = pd.read_csv("chap3-available_data-v2.csv")
-available_data_supp_df = pd.read_csv("chap3-available_data_supp-v2.csv")
+complete_data_df = pd.read_csv("chap5-complete_data.csv")
+available_data_df = pd.read_csv("chap5-available_data.csv")
+available_data_supp_df = pd.read_csv("chap5-available_data_supp.csv")
 
 #Reformatting factor variables
 complete_data_df['gender'] = pd.Categorical(complete_data_df.gender, 
@@ -67,8 +63,8 @@ print(ols("bkg_amt~neuro", data=max_data_df).fit().summary())
 ##### 2. Level of missingness - Tacoma/Tampa illustration #####
    
 #Loading the data
-tacoma_df = pd.read_csv("chap3-tacoma.csv")
-tampa_df = pd.read_csv("chap3-tampa.csv")
+tacoma_df = pd.read_csv("chap5-tacoma.csv")
+tampa_df = pd.read_csv("chap5-tampa.csv")
     
 # Building the correlation matrices
 tampa_miss_df = tampa_df.copy().drop(['ID'], axis=1).isna()
@@ -97,24 +93,6 @@ md_state_mod.fit(disp=0).summary()
 
 
 ##### MICE imputation and analysis #####
-
-#Loading the data
-complete_data_df = pd.read_csv("chap3-complete_data-v2.csv")
-available_data_df = pd.read_csv("chap3-available_data-v2.csv")
-available_data_supp_df = pd.read_csv("chap3-available_data_supp-v2.csv")
-
-#Reformatting factor variables
-complete_data_df['gender'] = pd.Categorical(complete_data_df.gender, 
-                                      categories=['M','F'])
-available_data_df['gender'] = pd.Categorical(available_data_df.gender, 
-                                      categories=['M','F'])
-complete_data_df['state'] = pd.Categorical(complete_data_df.state,
-                                            categories=['A','B','C'])
-available_data_df['state'] = pd.Categorical(available_data_df.state,
-                                            categories=['A','B','C'])
-
-
-
 
 #One-hot encoding categorical variables
 gender_dummies = pd.get_dummies(available_data_df.gender, prefix='gender')
