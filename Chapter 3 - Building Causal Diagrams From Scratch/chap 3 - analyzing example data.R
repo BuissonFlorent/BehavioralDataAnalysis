@@ -1,5 +1,5 @@
-### Part II Chapter 5 : Building CDs from scratch
-## chap5 - analyzing example data.R
+### Part II Chapter 3 : Building CDs from scratch
+## chap 3 - analyzing example data.R
 ##
 ## This script loads the example data, based on data from Antonio, de Almeida & Nunes, 
 ## "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126.
