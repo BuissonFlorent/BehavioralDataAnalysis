@@ -5,20 +5,15 @@ Created on Sat Jul 25 09:10:19 2020
 @author: Florent
 """
 
-import os
 import pandas as pd
 from statsmodels.formula.api import ols
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
-os.chdir('C:\\Users\\Florent\\Dropbox\\Synchronised\\Work_and_projects\\Behavioral data science book\\R scripts\\transfered to Github')
-
-
 ##### First example: stand data #####
 
 #Reading the data
-stand_data_df = pd.read_csv('chap2-stand_data.csv')
+stand_data_df = pd.read_csv('chap1-stand_data.csv')
 
 #Plotting ice-cream sales against temperatures
 sns.scatterplot(x='temps', y='icecream_sales', data=stand_data_df)
@@ -37,12 +32,10 @@ model3 = ols("icecream_sales ~ temps + summer_months + iced_coffee_sales",
              data=stand_data_df)
 print(model3.fit().summary())
 
-
-
 ##### Second example: survey data #####
 
 #Reading the data
-survey_data_df = pd.read_csv('chap2-survey_data.csv')
+survey_data_df = pd.read_csv('chap1-survey_data.csv')
 
 #Reformatting shopped variable to binary
 survey_data_df['shopped'] = pd.Categorical(survey_data_df.shopped, 
@@ -77,5 +70,3 @@ plt.show()
 sns.regplot(x='vanilla', y='chocolate', 
             data=survey_data_df[survey_data_df.shopped==1], 
             line_kws={'color':'black'})
-
-
