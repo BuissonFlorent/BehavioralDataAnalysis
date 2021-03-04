@@ -5,16 +5,15 @@ Created on Sun May 10 11:44:30 2020
 @author: Florent
 """
 
-import os
-import pandas as pd
+##### Data and libraries
 
-#Data analysis libraries
+import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 from statsmodels.formula.api import ols
-
-os.chdir('C:\\Users\\Florent\\Dropbox\\Synchronised\\Work_and_projects\\Behavioral data science book\\R scripts\\Part II Analyzing observational data\\Chapter 7 - Measurement and randomness')
+import statsmodels.stats.outliers_influence as st_inf # For Cook's distance
 
 ### Generating the data
 
@@ -90,7 +89,6 @@ pval = 2 * sum(1 for x in reg_lst if x > 0) / B
 lin_mod = ols("times~experience", data=data_df).fit()
 
 #Extract Cook's distance for influential points
-import statsmodels.stats.outliers_influence as st_inf
 CD = st_inf.OLSInfluence(lin_mod).summary_frame()['cooks_d']
 CD[CD > 1]
 
@@ -99,38 +97,29 @@ res_df = lin_mod.resid
 
 sns.kdeplot(res_df)
 
-import statsmodels.api as sm
 fig = sm.qqplot(res_df, line='s')
 plt.show()
 
-##### Tools in R and Python #####
-
+##### Optimizing the Bootstrap in R and Python #####
     
 #Creating unique numpy array for sampling
-data_ar = data_df.to_numpy()							
-rng = np.random.default_rng()							
+data_ar = data_df.to_numpy()
+rng = np.random.default_rng()
 
 np_lst = []
 for i in range(B): 
     
     #Extracting the relevant columns from array
-    boot_ar = rng.choice(data_ar, size=N, replace=True)			
-    X = boot_ar[:,1]									
+    boot_ar = rng.choice(data_ar, size=N, replace=True)
+    X = boot_ar[:,1]
     X = np.c_[X, np.ones(N)]
-    Y = boot_ar[:,0]									
+    Y = boot_ar[:,0]
     
     ### LSTQ implementation
-    np_lst.append(np.linalg.lstsq(X, Y, rcond=-1)[0][0])	
+    np_lst.append(np.linalg.lstsq(X, Y, rcond=-1)[0][0])
 
 #Plotting histogram
 sns.distplot(np_lst)
 
 LL_b_np = np.quantile(np_lst, 0.025)  
 UL_b_np = np.quantile(np_lst, 0.975) 
-
-
-
-
-
-
-
