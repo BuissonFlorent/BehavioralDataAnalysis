@@ -39,7 +39,7 @@ group = "control" if assgnt <= 1/K else "treatment"
 
 #### 3.2 Sample size and experiment power ####
 
-effect_size = 2*asin(sqrt(0.194))-2*asin(sqrt(0.184))
+effect_size = ssprop.proportion_effectsize(0.194, 0.184)
 ssp.tt_ind_solve_power(effect_size = effect_size, 
                        alpha = 0.05, 
                        nobs1 = None, 
