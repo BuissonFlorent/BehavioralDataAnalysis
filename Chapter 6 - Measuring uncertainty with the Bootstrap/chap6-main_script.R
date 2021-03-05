@@ -59,10 +59,10 @@ ggplot(mean_summ, aes(x=means)) + geom_histogram()
 # bootstrap CI bounds (dashed lines).
 ggplot(mean_summ, aes(x=means)) + geom_histogram() + 
   #geom_vline(xintercept = est, col ='red', size=2) +
-  geom_vline(xintercept = LL, lty='dotted') +
-  geom_vline(xintercept = UL, lty='dotted') +
-  geom_vline(xintercept = LL_b, lty='dashed', col='blue') +
-  geom_vline(xintercept = UL_b, lty='dashed', col='blue') +
+  geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
+  geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
+  geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', col='blue') +
+  geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', col='blue') +
   geom_vline(xintercept = M_b,size = 2, col='blue')
 
 #### Bootstrap for time promise
@@ -79,11 +79,11 @@ promise_fun <- function(dat, B = 2000){
 }
 promise_summ <- promise_fun(dat, B = 2000)
 
-# Figure 7-4. Distribution of the percentage of each sample with a preparation 
+# Figure 7-4. Distribution of the proportion of each sample with a preparation 
 # time above 180mn.
 ggplot(promise_summ, aes(x=above180)) + geom_histogram() +
   scale_x_continuous(breaks=seq(from=0,to=0.6,by=0.1)) +
-  xlab("percentage of sample with preparation time above 180mn")
+  xlab("proportion of sample with preparation time above 180mn")
 
 LL_b <- as.numeric(quantile(promise_summ$above180, c(0.025)))
 UL_b <- as.numeric(quantile(promise_summ$above180, c(0.975)))
@@ -118,7 +118,7 @@ reg_fun <- function(dat, B = 2000){
   reg_summ <- tibble(coeff = unlist(reg_lst))
   return(reg_summ)
 }
-reg_summ <- reg_fun(dat, B=2000)
+reg_summ <- reg_fun(dat, B=4000)
 
 M_b <- mean(reg_summ$coeff)
 LL_b <- as.numeric(quantile(reg_summ$coeff, c(0.025)))
@@ -130,10 +130,10 @@ UL_b <- as.numeric(quantile(reg_summ$coeff, c(0.975)))
 # (B=4,000 bootstrap samples)
 ggplot(reg_summ, aes(x=coeff)) + geom_histogram(bins=500) + xlim(c(-45,5)) +
   geom_vline(xintercept = M_b, col ='blue', size=2) +
-  geom_vline(xintercept = LL, lty='dotted') +
-  geom_vline(xintercept = UL, lty='dotted') +
-  geom_vline(xintercept = LL_b, lty='dashed', size = 1.5, col='blue') +
-  geom_vline(xintercept = UL_b, lty='dashed', size = 1.5, col='blue') +
+  geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
+  geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
+  geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
+  geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
   xlab("regression coefficient of preparation time on experience")
 
 ### Achieved Significance Level
