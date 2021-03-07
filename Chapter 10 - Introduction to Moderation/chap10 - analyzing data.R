@@ -17,10 +17,6 @@ library(Rfast) #For function lmfit
 library(parallel)
 library(doParallel)
 
-
-#Chapter-specific libraries
-library(Rlab)
-
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
