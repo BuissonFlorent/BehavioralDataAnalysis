@@ -1,14 +1,19 @@
-### Part II Chapter 3 : Building CDs from scratch
-## chap 3 - analyzing example data.R
-##
-## This script loads the example data, based on data from Antonio, de Almeida & Nunes, 
-## "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126.
-## and analyzes it
+---
+title: "R Notebook"
+output: html_notebook
+---
 
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 3: Building CDs From Scratch
 
-##### Setup #####
+This script loads the example data, based on data from Antonio, de Almeida & Nunes,  "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126. and analyzes it
+
+# Business problem and data setup
+## Data and libraries
+```{r}
 library(rcompanion) # For Cramer V correlation coefficient
-library(tidyverse)
+suppressMessages(suppressWarnings(library(tidyverse)))
+suppressMessages(suppressWarnings(library(car)))
+library(car) #For vif diagnostic function
 library(ggpubr) #For function ggrrange
 library(rstudioapi)
 library(corrplot)
@@ -20,6 +25,9 @@ setwd(sourceDir)
 set.seed(1234)
 options(scipen=10)
 
+```
+
+```{r}
 #Loading the data
 dat <- read_csv("chap3-hotel_booking_case_study.csv", 
                 col_types = cols(
@@ -46,17 +54,25 @@ topcountries <- countries %>%
 dat <- dat %>%
   mutate(Country = ifelse(Country %in% topcountries$Country, Country, "Other")) %>%
   mutate(Country = as.factor(Country))
-
-
-##### Exploratory correlation analysis #####
-
+```
+## Understanding the relationship of interest
+```{r}
 #Cancellation rate by deposit types
 with(dat, table(NRDeposit, IsCanceled))
+```
+
+
+```{r}
 with(dat, prop.table(table(NRDeposit, IsCanceled), 1))
+```
 
+
+```{r}
 with(dat, rcompanion::cramerV(NRDeposit, IsCanceled))
-
-#### Calculating correlation table for all numeric variables
+```
+# Validate observable variables to include based on data
+## Relationships between numeric variables
+```{r}
 dat <- dat %>%
   rename(CustTyp= CustomerType) %>%
   rename(DistCh = DistributionChannel) %>%
@@ -65,18 +81,27 @@ dat <- dat %>%
   rename(IsCanc = IsCanceled) %>%
   rename(PrevCan = PreviousCancellations) %>%
   rename(NRDep = NRDeposit)
+```
 
+```{r}
 num_dat <- dat %>%
   mutate(NRDep = as.integer(NRDep)) %>%
   mutate(IsCanc = as.integer(IsCanc)) %>%
   mutate(PrevCan = as.integer(PrevCan)) %>%
   mutate(RepGst = as.integer(RepGst)) %>%
   select_if(function(x) is.numeric(x)|is.integer(x))
+```
 
+```{r}
 num_cor <- cor(num_dat)
 num_cor
+```
+```{r}
 corrplot.mixed(num_cor, lower.col = "black", number.cex = .7)
+```
 
+
+```{r}
 ### Calculating correlation table for all categorical variables
 
 cat_corr_fun <- function(dat){
@@ -114,24 +139,38 @@ cat_corr_fun <- function(dat){
 cat_corr_mat <- cat_corr_fun(dat)
 
 corrplot.mixed(cat_corr_mat, lower.col = "black", number.cex = .7)
-
+```
+```{r}
 ##### Correlations between numeric and categorical variables #####
-
 dat %>% group_by(CustTyp) %>% summarize(ADR = mean(ADR))
-f <- dat %>% group_by(Country) %>% summarize(Year = mean(Year))
+```
 
+
+```{r}
+dat %>% group_by(Country) %>% summarize(Year = mean(Year))
+```
+
+```{r}
 ggplot(data=dat, aes(x=CustTyp, y = Year)) +geom_boxplot()
+```
 
+```{r}
 summary(lm(Year~CustTyp, data=dat))
+```
 
-##### Regression analysis #####
+```{r}
+# Regression analysis #####
 
 #Single explanatory variable
 mod1 <- glm(IsCanc ~ NRDep, 
             data = dat, family = binomial(link = "logit"))
 summary(mod1)
 
+```
+
+```{r}
 #Complete model
 mod_all <- glm(IsCanc ~ ., 
                    data = dat, family = binomial(link = "logit"))
 summary(mod_all)
+```
