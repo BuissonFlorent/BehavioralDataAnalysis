@@ -8,16 +8,19 @@
 #Common libraries
 library(tidyverse)
 library(ggpubr)
+library(rstudioapi)
 
-#Chapter-specific libraries
-library(Rlab)
+#Libraries for high-performance Bootstrap computation
 library(mltools) #For function one_hot
 library(data.table) #For function as.data.table
 library(Rfast) #For function lmfit
 library(parallel)
 library(doParallel)
 
-library(rstudioapi)
+
+#Chapter-specific libraries
+library(Rlab)
+
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
@@ -27,7 +30,7 @@ set.seed(1234)
 options(scipen=10)
 
 #Reading the data
-hist_data <- read_csv("chap11-historical_data.csv")
+hist_data <- read_csv("chap10-historical_data.csv")
 
 #Formatting the data
 hist_data <- hist_data %>%
@@ -121,7 +124,7 @@ viz_fun_11.23 <- function(dat){
 viz_fun_11.23(hist_data)
 
 #Regression summary
-summary(lm(duration~play_area * children * age, data=dat))
+summary(lm(duration~play_area * children * age, data=hist_data))
 
 #### Validating Moderation With Bootstrap ####
 
@@ -258,4 +261,3 @@ business_metric_fun <- function(dat){
 }
 action_summ_dat <- business_metric_fun(hist_data)
 summary(action_summ_dat)
-
