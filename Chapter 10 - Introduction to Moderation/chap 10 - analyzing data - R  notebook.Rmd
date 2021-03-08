@@ -1,30 +1,35 @@
-#################################
-##### This script analyzes the data used in chapter 10, 
-##### Introduction to Moderation
-#################################
+---
+title: "R Notebook"
+output: html_notebook
+---
 
-##### Setup #####
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 10: Introduction to Moderation
 
-#Common libraries
-library(tidyverse)
-library(ggpubr)
+
+```{r}
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
 library(rstudioapi)
+library(ggpubr)
 
 #Libraries for high-performance Bootstrap computation
 library(mltools) #For function one_hot
 library(data.table) #For function as.data.table
 library(Rfast) #For function lmfit
-library(parallel)
-library(doParallel)
+library(parallel) # For parallel computations
+library(doParallel) # For parallel computations
+
+# Chapter-specific libraries
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
-
-set.seed(1234)
 options(scipen=10)
+set.seed(1234)
+```
 
+```{r}
 #Reading the data
 hist_data <- read_csv("chap10-historical_data.csv")
 
@@ -34,15 +39,19 @@ hist_data <- hist_data %>%
   mutate(day = factor(day)) %>%
   mutate(children = factor(children)) %>%
   mutate(play_area = factor(play_area))
+```
 
-##### Section 1: Varieties of Moderation #####
+# Behavioral varieties of moderation
 
-#### Segmentation ####
+## Segmentation
 
+```{r}
 summary(lm(duration~play_area * children, data=hist_data))
+```
 
-### Figure 11-3. Visual representation of moderation ###
-viz_fun_11.3 <- function(dat){
+```{r}
+### Figure 10-3. Visual representation of moderation ###
+viz_fun_10.3 <- function(dat){
   #Representing visually moderation
   summary_dat0 <- dat %>%
     group_by(children,play_area) %>%
@@ -56,10 +65,13 @@ viz_fun_11.3 <- function(dat){
   mod_p0
 }
 
-viz_fun_11.3(hist_data)
+viz_fun_10.3(hist_data)
+```
 
-#### Non-linearities ####
+## Non-linearities ##
 
+```{r}
+### NEED TO TRANSFER THAT DATA TO A CSV FILE AND READ FROM IT INSTEAD ###
 #Toy dataset for this subsection
 nonlin_data <- tibble(
   Emails = seq(from = 1, to = 10, by = 0.5),
@@ -71,38 +83,50 @@ nonlin_data <- nonlin_data %>%
   mutate(pred_PP_lin = lm(data=nonlin_data, Purchases~Emails)$fitted.values,
          pred_PP_quad = lm(data=nonlin_data, 
                            Purchases~Emails+I(Emails^2))$fitted.values)
+```
 
-### Figure 11-14. Non-linear relationships between variables ###
-viz_fun_11.14 <- function(dat){
+```{r}
+### Figure 10-14. Non-linear relationships between variables ###
+viz_fun_10.14 <- function(dat){
   p1 <- ggplot(dat, aes(Emails, Purchases)) + geom_point() + xlab("avg. monthly marketing emails") + ylab("avg. monthly purchases") 
   p2 <- ggplot(dat, aes(Properties, Customers)) + geom_point() + xlab("number of properties (1000s)") + ylab("number of customers (1000s)")
   ggarrange(p1, p2, ncol=2, nrow=1)
 }
-viz_fun_11.14(nonlin_data)
+viz_fun_10.14(nonlin_data)
+```
 
-### Figure 11-15. Linear (dashed) and quadratic (solid) lines of best fit ###
-viz_fun_11.15 <- function(dat){
+```{r}
+### Figure 10-15. Linear (dashed) and quadratic (solid) lines of best fit ###
+viz_fun_10.15 <- function(dat){
   ggplot(dat, aes(Emails, Purchases)) + geom_point(shape=16) + 
     xlab("avg. monthly marketing emails") + 
     ylab("avg. monthly purchases") +
     geom_line(aes(y=pred_PP_lin, col='red'), lty="dashed", show.legend=FALSE) +
     geom_line(aes(y=pred_PP_quad, col='blue'), show.legend=FALSE)
 }
-viz_fun_11.15(nonlin_data)
+viz_fun_10.15(nonlin_data)
+```
 
+```{r}
 # Syntax for self-moderation
 summary(lm(Purchases ~ Emails + I(Emails^2), data=nonlin_data))
+```
 
-##### Section 2: How To Apply Moderation #####
+# How To Apply Moderation
 
-#### When to look for moderation ####
+## When to look for moderation?
 
-#hist_data <- hist_data %>% mutate(age_quart = ntile(age, 4))
+```{r}
+#Binning age (i.e. converting it to categorical variable )
+hist_data <- hist_data %>% mutate(age_quart = ntile(age, 4))
 
-#### Multiple Moderators ####
+```
 
-### Figure 11-23. Moderated moderation across different age groups ###
-viz_fun_11.23 <- function(dat){
+## Multiple Moderators
+
+```{r}
+### Figure 10-23. Moderated moderation across different age groups ###
+viz_fun_10.23 <- function(dat){
   summary_dat <- dat %>%
     mutate(age_grp = factor(round(age/10)*10, ordered = TRUE, 
                             levels = c("20","30","40","50","60","70","80"))) %>%
@@ -117,13 +141,17 @@ viz_fun_11.23 <- function(dat){
     facet_grid(.~age_grp)
   mod_p1
 }
-viz_fun_11.23(hist_data)
+viz_fun_10.23(hist_data)
+```
 
+```{r}
 #Regression summary
 summary(lm(duration~play_area * children * age, data=hist_data))
+```
 
-#### Validating Moderation With Bootstrap ####
+## Validating Moderation With Bootstrap
 
+```{r}
 # Function for bootstrap
 mod_boot_fun <- function(dat, B, N){
   set.seed(1)
@@ -180,65 +208,75 @@ mod_boot_fun <- function(dat, B, N){
   boot_summary <- bind_rows(boot_list)
   return(boot_summary)
 }
-
 #Running the bootstrap simulation with 1k samples of 10k rows
-mod_summ <- mod_boot_fun(hist_data, B = 1e3, N = 1e5)
+mod_summ10k <- mod_boot_fun(hist_data, B = 1e3, N = 1e5)
 
-### Figure 11-25. Distribution of bootstrapped values for interaction coefficient (1k samples of 10k rows) ###
-viz_fun_11.25 <- function(dat){
+### Figure 10-25. Distribution of bootstrapped values for interaction coefficient (1k samples of 10k rows) ###
+viz_fun_10.25 <- function(dat){
   ggplot(dat, aes(x=coeff_i)) + geom_histogram() + xlim(c(19.5,22.5)) +
     geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc")
 }
-viz_fun_11.25(mod_summ)
+viz_fun_10.25(mod_summ10k)
+```
 
+```{r}
 #Running the bootstrap simulation with 1k samples of 200k rows
-mod_summ <- mod_boot_fun(hist_data, B = 1e3, N = 2e5)
+mod_summ200k <- mod_boot_fun(hist_data, B = 1e3, N = 2e5)
 
-### Figure 11-26. Distribution of bootstrapped values for interaction coefficient (1k samples of 200k rows) ###
-viz_fun_11.26 <- function(dat){
+### Figure 10-26. Distribution of bootstrapped values for interaction coefficient (1k samples of 200k rows) ###
+viz_fun_10.26 <- function(dat){
   ggplot(mod_summ, aes(x=coeff_i)) + geom_histogram() + xlim(c(19.5,22.5)) +
     geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc")
 }
-viz_fun_11.26(mod_summ)
+viz_fun_10.26(mod_summ200k)
+```
 
-#### Interpreting individual coefficients ####
+## Interpreting individual coefficients
 
+```{r}
 # Creating smaller sample for readability of figures
 set.seed(1)
 extract_dat <- hist_data %>% slice_sample(n=1e3) 
+```
 
-
-### Figure 11-27. Sample of 1,000 data points and regression lines with a play area (full dots, solid line) and without (crosses, dashed line), without moderation term ###
-viz_fun_11.27 <- function(dat){
+```{r}
+### Figure 10-27. Sample of 1,000 data points and regression lines with a play area (full dots, solid line) and without (crosses, dashed line), without moderation term ###
+viz_fun_10.27 <- function(dat){
   ggplot(extract_dat, aes(x=age, y=duration, col=play_area)) + 
     geom_point(aes(shape = play_area), alpha = 0.8) +
     scale_shape_manual(values=c(4, 16)) +
     geom_abline(intercept = 25, slope = -0.024, col = 'red', lty='dashed', size = 1.5) + 
     geom_abline(intercept = 25+12.5568, slope = -0.024, col = 'blue')
 }
-viz_fun_11.27(extract_dat)
+viz_fun_10.27(extract_dat)
+```
 
-### Figure 11-28. Sample of 1,000 data points and regression lines with a play area (full dots, solid line) and without (crosses, dashed line), with moderation term ###
-viz_fun_11.28 <- function(dat){
+```{r}
+### Figure 10-28. Sample of 1,000 data points and regression lines with a play area (full dots, solid line) and without (crosses, dashed line), with moderation term ###
+viz_fun_10.28 <- function(dat){
   ggplot(extract_dat, aes(x=age, y=duration, col=play_area)) + 
     geom_point(aes(shape = play_area), alpha = 0.8) +
     scale_shape_manual(values=c(4, 16)) +
     geom_abline(intercept = 23.82, slope = 0, col = 'red', lty='dashed', size = 1.5) + 
     geom_abline(intercept = 23.82+15.852, slope = -0.0659, col = 'blue')
 }
-viz_fun_11.28(extract_dat)
+viz_fun_10.28(extract_dat)
+```
 
-### Setting meaningful reference points
+```{r}
+## Setting meaningful reference points
 
 #Centering age
 centered_data <- hist_data %>%
   mutate(age = age - mean(age))
+
 #Resetting default for play_area
 centered_data <- hist_data %>%
   mutate(play_area = factor(play_area, levels=c('1','0')))
+```
 
+```{r}
 ### Calculating effects at the level of business decisions
-
 business_metric_fun <- function(dat){
   mod_model <- lm(duration~play_area * (children + age), data=dat)
   
@@ -256,4 +294,5 @@ business_metric_fun <- function(dat){
   return(action_dat)
 }
 action_summ_dat <- business_metric_fun(hist_data)
-summary(action_summ_dat)
+head(action_summ_dat, 3)
+```
