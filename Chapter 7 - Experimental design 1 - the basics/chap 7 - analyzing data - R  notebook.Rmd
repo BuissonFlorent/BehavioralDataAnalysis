@@ -7,7 +7,7 @@ This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 7: E
 
 ```{r}
 # Data and libraries
-library(tidyverse)
+suppressMessages(suppressWarnings(library(tidyverse)))
 library(pwr)
 library(boot)
 library(rstudioapi)

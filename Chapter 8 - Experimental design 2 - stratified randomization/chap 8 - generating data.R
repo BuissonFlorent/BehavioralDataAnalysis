@@ -4,12 +4,9 @@ library(Rlab)
 library(tidyverse)
 library(MBESS)
 
-library(rstudioapi)
-### Setting the working directory to the parent folder of this script (Rstudio only)
-sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
-setwd(sourceDir)
-
+setwd("C:/Users/Florent/Dropbox/Synchronised/Work_and_projects/Behavioral data science book/R scripts/Part III Experimental design/Chapter 9 - stratified randomization")
 options(scipen=10)
+set.seed(4)
 
 
 ##### Generating the baseline data #####
@@ -17,9 +14,9 @@ options(scipen=10)
 Nperiods <- 36 #Number of months
 N <- 5000 #Number of properties
 
-set.seed(1234)
 data_generation_fct <- function(Nperiods, N){
   #Simulating the variables that are constant at the property level
+  ID <- 1:N
   sq_ft <- rnorm(N, 800, 100)
   tier <- sample(c(1,2,2,3,3,3,3), size = N, replace = TRUE)
   avg_review <- rnorm(N, 7, 1.5) %>%
@@ -49,6 +46,7 @@ data_generation_fct <- function(Nperiods, N){
       pmax(rep(0,N))
     
     dat_list[[i]] <- data.frame(
+      ID = ID,
       period = period,
       month = month,
       sq_ft = sq_ft,
@@ -81,45 +79,60 @@ library(blockTools)
 library(caret)
 library(scales)
 
-N <- 2001
+#Sample size for experiment (divisible by 3)
+Nexp <- 1500
 
-blocking_fct <- function(dat, N){
-  block_data <- dat %>%
-    select(-period, -month) %>%
-    sample_n(N) %>%
-    #Creating an ID variable for bookkeeping
-    mutate(id = as.character(seq(1,N)))
+### Prepping the data
+block_prep_fun <- function(dat){
+  #Extracting property-level variables
+  dat <- dat %>%
+    group_by(ID, tier) %>%
+    summarise(sq_ft = mean(sq_ft),
+              avg_review = mean(avg_review),
+              BPday = mean(BPday)) %>%
+    ungroup()
   
   #Isolating the different components of our data
-  id <- block_data$id  #Customer identifier
-  cat_vars <- block_data %>%
+  ID <- dat$ID  # Owner identifier
+  dat <- dat %>% select(-ID)
+  cat_vars <- dat %>%
     select_if(is.factor) #Selecting categorical variables
-  num_vars <- block_data %>%
+  num_vars <- dat %>%
     select_if(function(x) is.numeric(x)|is.integer(x)) #Selecting numeric variables
   
   #One-hot encoding categorical variables
-  cat_vars2 <- data.frame(predict(dummyVars(" ~.", data=cat_vars), newdata = cat_vars))
+  cat_vars_out <- data.frame(predict(dummyVars(" ~.", data=cat_vars), newdata = cat_vars))
   
   #Normalizing numeric variables
-  num_vars2 <- num_vars %>%
+  num_vars_out <- num_vars %>%
     mutate_all(rescale)
   
   #Putting the variables back together
-  block_data2 <- cbind(id, num_vars2, cat_vars2)
+  dat_out <- cbind(ID, num_vars_out, cat_vars_out)
+}
+
+prepped_data <- block_prep_fun(hist_data)
+
+blocking_wrapper_fun <- function(dat, Nexp){
   
-  #Getting stratified experimental group assignment
-  assgt <- block_data2 %>%
-    block(block_data2, id.vars = c("id"), n.tr = 3, 
+  #Extracting a sample of the right size
+  dat <- dat %>% slice_sample(n=Nexp)
+  
+  #Getting stratified assignment
+  assgt <- dat %>%
+    block(dat, id.vars = c("ID"), n.tr = 3, 
           algorithm = "naiveGreedy", distance = "euclidean") %>%
     assignment() 
   assgt <- assgt$assg$`1` 
+  
   assgt <- assgt %>%
     select(-'Max Distance')
   colnames(assgt) <- c("ctrl", "treat1","treat2")
-  assgt_long <- gather(assgt,group, id, 'ctrl':'treat2') %>%
-    mutate(group = as.factor(group))
+  assgt_long <- gather(assgt,group, ID, 'ctrl':'treat2') %>%
+    mutate(group = as.factor(group)) %>%
+    mutate(ID = as.integer(ID))
   
-  dat_final <- full_join(block_data, assgt_long, by="id")
+  dat_final <- full_join(dat, assgt_long, by="ID")
   
   return(dat_final)
 }
@@ -127,25 +140,32 @@ blocking_fct <- function(dat, N){
 ##### Adding treatment effect to experiment #####
 
 #Stratifying the experimental data
-exp_data2 <- exp_data %>%
-  blocking_fct(N)
+exp_data_out <- exp_data %>%
+  blocking_wrapper_fun(Nexp)
 
 #Assigning treatment effect
-exp_data2 <- exp_data2 %>%
-  mutate(BPday_strat = case_when(
-    group == "ctrl" ~ BPday + rnorm(N, 0.5, 1),
-    group == "treat2" ~ BPday + rnorm(N, 12, 2),
-    group == "treat1" ~ BPday + rnorm(N, 1.5, 1)
+exp_data_out <- exp_data_out %>%
+  mutate(compliant = ifelse(runif(Nexp)>= 0.8,1,0)) %>%
+  mutate(compliant = ifelse(group == "ctrl",1, compliant)) %>%
+    mutate(BPday_strat = case_when(
+    (group == "ctrl" | compliant == 0) ~ BPday + rnorm(Nexp, 0.5, 0.1),
+    (group == "treat2" & compliant == 1) ~ BPday + rnorm(Nexp, 8.5, 2),
+    (group == "treat1" & compliant == 1) ~ BPday + rnorm(Nexp, 3.6, 0.3)
   ))
-exp_data2 <- exp_data2 %>%
+exp_data_out <- exp_data_out %>%
   select(-BPday) %>%
   rename(BPday = BPday_strat)
+
+exp_data_out %>%
+  group_by(group, compliant) %>%
+  summarise(cnt = n(),
+            avg_BP = mean(BPday))
            
 write_csv(hist_data, "chap9-historical_data.csv")
-write_csv(exp_data2, "chap9-experimental_data.csv")          
+write_csv(exp_data_out, "chap9-experimental_data.csv")          
            
            
-     
+
 
 
 

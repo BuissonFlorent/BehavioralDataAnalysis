@@ -1,3 +1,12 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 8: Experimental design 2 - stratified randomization
+
+
+```{r}
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
 library(rstudioapi)
@@ -19,18 +28,25 @@ sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
 options(scipen=10)
+```
 
+```{r}
 hist_data <- read_csv("chap8-historical_data.csv")
 exp_data <- read_csv("chap8-experimental_data.csv")
 
 #Restating tier as a factor variable
 hist_data <- hist_data %>%
   mutate(tier = factor(tier, levels = c(3,2,1))) %>%
-  mutate(ID = as.character(ID))
+mutate(ID = as.character(ID))
 exp_data <- exp_data %>%
   mutate(tier = factor(tier, levels = c(3,2,1))) %>%
   mutate(ID = as.character(ID))
+```
 
+# Determining random assignment and sample size/power
+
+## Random assignment
+```{r}
 # Function for assignment completely at random with 3 experimental groups 
 no_strat_assgnt_fun <- function(dat, Nexp){
   K <- 3  
@@ -47,7 +63,9 @@ no_strat_assgnt_fun <- function(dat, Nexp){
   return(dat)
 }
 #no_strat_assgnt <- no_strat_assgnt_fun(hist_data, Nexp = 4998)
+```
 
+```{r}
 # Extension of the previous function for any number K
 no_strat_assgnt_fun <- function(dat, Nexp, K){
   dat <- dat %>%
@@ -63,7 +81,9 @@ no_strat_assgnt_fun <- function(dat, Nexp, K){
   return(dat)
 }
 #no_strat_assgnt <- no_strat_assgnt_fun(hist_data, Nexp = 5000, K = 4)
+```
 
+```{r}
 # Function to prep the data for stratified randomization
 strat_prep_fun <- function(dat){
   #Extracting property-level variables
@@ -101,11 +121,15 @@ strat_prep_fun <- function(dat){
 }
 prepped_data <- strat_prep_fun(hist_data)
 head(prepped_data,5)
+```
 
+```{r}
 #Using the block function directly
 block_stratified_data <- block(prepped_data, id.vars = c("ID"), n.tr = 3,
-                               algorithm = "naiveGreedy", distance = "euclidean")
+algorithm = "naiveGreedy", distance = "euclidean")
+```
 
+```{r}
 #Using a wrapper function for readable output
 block_wrapper_fun <- function(dat){
   
@@ -129,7 +153,11 @@ block_wrapper_fun <- function(dat){
 }
 stratified_data <- block_wrapper_fun(hist_data)
 head(stratified_data,3)
+```
 
+## Power analysis with Bootstrap simulations
+
+```{r}
 # Metric function for free cleaning (treatment 1)
 treat1_metric_fun <- function(dat){
   lin_model <- lm(BPday~sq_ft+tier+avg_review+group, data = dat)
@@ -165,7 +193,9 @@ decision_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
   return(decision)
 }
 decision_fun(stratified_data, treat2_metric_fun)
+```
 
+```{r}
 single_sim_fun <- function(dat, metric_fun, Nexp, eff_size, B = 100, conf.level = 0.9){
   #Filter the data down to a random month
   per <- sample(1:35, size=1)
@@ -191,7 +221,9 @@ single_sim_fun <- function(dat, metric_fun, Nexp, eff_size, B = 100, conf.level 
   return(decision)
 }
 sim_decision <- single_sim_fun(hist_data, treat2_metric_fun, Nexp=99, eff_size=2)
+```
 
+```{r}
 #Standard function for simulations at scale
 power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim, B = 100, conf.level = 0.9){
   power_list <- vector(mode = "list", length = Nsim)
@@ -217,7 +249,9 @@ opt_power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim, B = 100, co
   stopImplicitCluster()
   return(power)
 }
+```
 
+```{r}
 # Visualizing the power simulation results for a confidence level of 0.90
 
 # Loading the results of the simulations I have run
@@ -233,7 +267,9 @@ viz_fun8.3 <- function(){
     geom_label(aes(label=sim.id), nudge_x = 100, nudge_y = -0.05)
 }
 viz_fun8.3()
+```
 
+```{r}
 ### Visualizing the power curve for various effect sizes at a sample size of 1500 and a confidence level of 0.90
 # Loading the results of the simulations I have run
 es_sim_res <- read_csv("es_sim_res.csv")
@@ -246,7 +282,9 @@ viz_fun8.4 <- function(){
     geom_label(x=0.025, y=0.055, label="significance")
 }
 viz_fun8.4()
+```
 
+```{r}
 ### Figure 8-5. Comparison of power curves for confidence levels 0.90 (solid line),  0.80 (dashed line) and 0.60 (dotted line)
 viz_fun8.5 <- function(){
   ggplot(es_sim_res, aes(x = ES, y = power90)) + geom_point() +
@@ -268,7 +306,13 @@ viz_fun8.5 <- function(){
     geom_label(x=0.025, y=0.2, label="significance")
 }
 viz_fun8.5()
+```
 
+# Analyzing and interpreting experimental results
+
+## Intention-To-Treat estimate for encouragement intervention
+
+```{r}
 #Linear regression
 exp_data_reg <- exp_data %>%
   mutate(BPday = BPday - ifelse(group=="treat2" & compliant, 10,0))
@@ -276,7 +320,11 @@ lin_model <- lm(BPday~sq_ft+tier+avg_review+group, data = exp_data_reg)
 summary(lin_model)
 boot_CI_fun(exp_data_reg, treat1_metric_fun)
 boot_CI_fun(exp_data_reg, treat2_metric_fun)
+```
 
+## Complier Average Causal Estimate (CACE) for mandatory intervention
+
+```{r}
 #Calculating the CACE
 exp_data_reg %>%
   group_by(group) %>%
@@ -285,3 +333,4 @@ exp_data_reg %>%
 exp_data_reg %>%
   group_by(group, compliant) %>%
   summarise(coeff = mean(BPday))
+```
