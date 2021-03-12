@@ -7,10 +7,19 @@ This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 7: E
 
 ```{r}
 # Data and libraries
+
+# Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(pwr)
-library(boot)
 library(rstudioapi)
+
+# Libraries for high-performance Bootstrap
+library(Rfast)
+library(doParallel)
+
+# Chapter-specific libraries
+library(pwr) # For traditional power analysis
+library(boot) # For traditional bootstrap
+
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)

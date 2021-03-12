@@ -16,8 +16,6 @@ library(Rfast)
 library(doParallel)
 
 # Chapter-specific libraries
-
-#library(MBESS)
 library(blockTools) # For function block()
 library(caret) # For one-hot encoding function dummyVars()
 library(scales) # For function rescale()
