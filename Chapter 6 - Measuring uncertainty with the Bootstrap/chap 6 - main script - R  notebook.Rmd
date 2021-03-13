@@ -26,8 +26,6 @@ options(scipen=10)
 
 ```{r}
 ### Data generation
-
-set.seed(1234)
 times <- c(2,2,3,5,6,9,10,47,61,413)
 experience <- c(11,17,18,1,10,4,6,3,8,0)
 
@@ -106,6 +104,7 @@ promise_fun <- function(dat, B = 2000){
   promise_summ <- tibble(above180 = unlist(promise_lst))
   return(promise_summ)
 }
+set.seed(1234)
 promise_summ <- promise_fun(dat, B = 2000)
 ```
 
@@ -157,6 +156,7 @@ reg_fun <- function(dat, B = 2000){
   reg_summ <- tibble(coeff = unlist(reg_lst))
   return(reg_summ)
 }
+set.seed(1234)
 reg_summ <- reg_fun(dat, B=4000)
 
 M_b <- mean(reg_summ$coeff)
