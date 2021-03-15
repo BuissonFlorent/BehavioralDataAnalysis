@@ -4,10 +4,13 @@
 #################################
 
 ##### Setup #####
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
 
-library(tidyverse)
-library(rstudioapi)
-### Setting the working directory to the parent folder of this script (Rstudio only)
+# Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 

@@ -10,13 +10,16 @@ This script loads the example data, based on data from Antonio, de Almeida & Nun
 # Business problem and data setup
 ## Data and libraries
 ```{r}
-library(rcompanion) # For Cramer V correlation coefficient
+# Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-suppressMessages(suppressWarnings(library(car)))
-library(car) #For vif diagnostic function
-library(ggpubr) #For function ggrrange
-library(rstudioapi)
-library(corrplot)
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(rcompanion) # For Cramer V correlation coefficient
+library(corrplot) # For Pearson's correlation coefficient, cor()
+#library(car) #For vif diagnostic function
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
@@ -24,7 +27,6 @@ setwd(sourceDir)
 
 set.seed(1234)
 options(scipen=10)
-
 ```
 
 ```{r}

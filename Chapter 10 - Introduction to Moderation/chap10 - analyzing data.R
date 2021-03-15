@@ -5,12 +5,13 @@
 
 ##### Setup #####
 
-#Common libraries
-library(tidyverse)
-library(ggpubr)
-library(rstudioapi)
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
 
-#Libraries for high-performance Bootstrap computation
+# Libraries for high-performance Bootstrap
 library(mltools) #For function one_hot
 library(data.table) #For function as.data.table
 library(Rfast) #For function lmfit
@@ -20,7 +21,6 @@ library(doParallel)
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
-
 
 set.seed(1234)
 options(scipen=10)

@@ -1,25 +1,26 @@
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(rstudioapi)
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(blockTools) # For function block()
+library(caret) # For one-hot encoding function dummyVars()
+library(scales) # For function rescale()
 
 # Libraries for high-performance Bootstrap
 library(Rfast)
 library(doParallel)
 
-# Chapter-specific libraries
-
-#library(MBESS)
-library(blockTools) # For function block()
-library(caret) # For one-hot encoding function dummyVars()
-library(scales) # For function rescale()
-
-
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
+set.seed(1234)
 options(scipen=10)
 
+# Loading the data
 hist_data <- read_csv("chap8-historical_data.csv")
 exp_data <- read_csv("chap8-experimental_data.csv")
 

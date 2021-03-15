@@ -1,22 +1,28 @@
 ##### Setup #####
-library(doParallel)
-library(ggpubr)
-library(binaryLogic)
-library(gtools)
-library(Rlab)
-library(lme4)
-library(lmerTest)
-library(blockTools)
-library(caret)
-library(scales)
-library(doParallel)
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(blockTools) # For function block()
+library(caret) # For one-hot encoding function dummyVars()
+library(scales) # For function rescale()
+library(lme4) # For hierarchical modeling
+library(lmerTest) # For additional diagnostics of hierarchical modeling
 library(nbpMatching) #To use 'optimal' algorithm in stratified randomization
-library(tidyverse)
-library(rstudioapi)
+library(binaryLogic) # For function as.binary()
+
+# Libraries for high-performance Bootstrap
+library(Rfast)
+library(doParallel)
+
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
+set.seed(1234)
 options(scipen=10)
 
 #Reading the data

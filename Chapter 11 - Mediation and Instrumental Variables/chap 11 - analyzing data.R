@@ -7,19 +7,19 @@
 
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(rstudioapi)
-library(ggpubr)
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
 
 # Chapter-specific libraries
-library(boot)
 library(ivreg) # for IV regressions
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
-options(scipen=10)
 set.seed(1234)
+options(scipen=10)
 
 #Loading the data from the chapter on moderation
 hist_data <- read_csv("chap10-historical_data.csv")

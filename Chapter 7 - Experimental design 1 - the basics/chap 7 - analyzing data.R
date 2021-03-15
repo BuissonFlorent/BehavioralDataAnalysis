@@ -1,8 +1,17 @@
 ##### 2. Data and libraries #####
-library(tidyverse)
-library(pwr)
-library(boot)
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
 library(rstudioapi)
+library(ggpubr)
+library(boot)
+
+# Chapter-specific libraries
+library(pwr) # For traditional power analysis
+
+# Libraries for high-performance Bootstrap
+library(Rfast)
+library(doParallel)
+
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)

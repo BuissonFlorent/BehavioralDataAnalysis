@@ -5,15 +5,19 @@
 ## "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126.
 ## and analyzes it
 
-
 ##### Setup #####
-library(rcompanion) # For Cramer V correlation coefficient
-library(tidyverse)
-library(ggpubr) #For function ggrrange
-library(rstudioapi)
-library(corrplot)
 
-### Setting the working directory to the parent folder of this script (Rstudio only)
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(rcompanion) # For Cramer V correlation coefficient
+library(corrplot) # For Pearson's correlation coefficient, cor()
+
+# Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 

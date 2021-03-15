@@ -1,19 +1,23 @@
 ##### Setup #####
-library(Rlab)
-library(tidyverse)
-library(ggplot2)
-library(ggpubr)
-library(rstudioapi)
+
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+#Chapter-specific libraries
+library(binom) # To validate CIs analytically with functions binom.coverage() and binom.confint()
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
+set.seed(1234)
 options(scipen=10)
 
 ### Data generation
 
-set.seed(1234)
 times <- c(2,2,3,5,6,9,10,47,61,413)
 experience <- c(11,17,18,1,10,4,6,3,8,0)
 
@@ -88,7 +92,6 @@ LL_b <- as.numeric(quantile(promise_summ$above180, c(0.025)))
 UL_b <- as.numeric(quantile(promise_summ$above180, c(0.975)))
 
 ## Analytical confidence interval
-library(binom)
 binom.coverage(0.1, 20, conf.level = 0.95, method = "all")
 binom.confint(x=2, n=20, conf.level = 0.95)
 

@@ -7,8 +7,9 @@
 
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(rstudioapi)
-library(ggpubr)
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
 
 # Chapter-specific libraries
 library(mice)
