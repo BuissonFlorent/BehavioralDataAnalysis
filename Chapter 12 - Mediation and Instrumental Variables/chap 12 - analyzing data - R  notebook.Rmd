@@ -3,7 +3,7 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 11: Mediation and instrumental variables
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 12: Mediation and instrumental variables
 
 ```{r}
 # Common libraries
@@ -25,7 +25,7 @@ options(scipen=10)
 
 ```{r}
 #Loading the data from the chapter on moderation
-hist_data <- read_csv("chap10-historical_data.csv")
+hist_data <- read_csv("chap11-historical_data.csv")
 
 #Formatting the data
 hist_data <- hist_data %>%

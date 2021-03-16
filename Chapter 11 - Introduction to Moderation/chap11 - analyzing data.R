@@ -1,5 +1,5 @@
 #################################
-##### This script analyzes the data used in chapter 10, 
+##### This script analyzes the data used in chapter 11, 
 ##### Introduction to Moderation
 #################################
 
@@ -26,7 +26,7 @@ set.seed(1234)
 options(scipen=10)
 
 #Reading the data
-hist_data <- read_csv("chap10-historical_data.csv")
+hist_data <- read_csv("chap11-historical_data.csv")
 
 #Formatting the data
 hist_data <- hist_data %>%

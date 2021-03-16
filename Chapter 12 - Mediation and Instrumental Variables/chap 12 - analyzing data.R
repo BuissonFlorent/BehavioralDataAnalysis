@@ -22,7 +22,7 @@ set.seed(1234)
 options(scipen=10)
 
 #Loading the data from the chapter on moderation
-hist_data <- read_csv("chap10-historical_data.csv")
+hist_data <- read_csv("chap11-historical_data.csv")
 
 #Formatting the data
 hist_data <- hist_data %>%

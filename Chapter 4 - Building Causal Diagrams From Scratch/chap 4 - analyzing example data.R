@@ -1,5 +1,5 @@
-### Part II Chapter 3 : Building CDs from scratch
-## chap 3 - analyzing example data.R
+### Part II Chapter 4: Building CDs from scratch
+## chap 4 - analyzing example data.R
 ##
 ## This script loads the example data, based on data from Antonio, de Almeida & Nunes, 
 ## "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126.
@@ -25,7 +25,7 @@ set.seed(1234)
 options(scipen=10)
 
 #Loading the data
-dat <- read_csv("chap3-hotel_booking_case_study.csv", 
+dat <- read_csv("chap4-hotel_booking_case_study.csv", 
                 col_types = cols(
                   NRDeposit = col_factor(),
                   IsCanceled = col_factor(),

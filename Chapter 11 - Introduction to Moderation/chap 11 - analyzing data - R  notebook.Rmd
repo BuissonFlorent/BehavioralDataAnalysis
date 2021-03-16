@@ -3,7 +3,7 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 10: Introduction to Moderation
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 11: Introduction to Moderation
 
 
 ```{r}
@@ -31,7 +31,7 @@ options(scipen=10)
 
 ```{r}
 #Reading the data
-hist_data <- read_csv("chap10-historical_data.csv")
+hist_data <- read_csv("chap11-historical_data.csv")
 
 #Formatting the data
 hist_data <- hist_data %>%

@@ -1,10 +1,11 @@
-#################################
-##### This script analyzes the simulated data used in chapter 5, 
-##### Handling missing data
-#################################
+---
+title: "R Notebook"
+output: html_notebook
+---
 
-##### Setup #####
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 6: Handling Missing Data
 
+```{r}
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
 library(boot) #Required for Bootstrap simulations
@@ -23,24 +24,29 @@ setwd(sourceDir)
 
 options(scipen=10)
 set.seed(1234)
+```
 
+```{r}
 #Loading the data
-complete_data <- read_csv("chap5-complete_data.csv") %>%
+complete_data <- read_csv("chap6-complete_data.csv") %>%
   mutate(state = factor(state, levels = c("A", "B", "C")))%>%
   mutate(gender = factor(gender, levels = c("M", "F")))
-available_data <- read_csv("chap5-available_data.csv") %>%
+available_data <- read_csv("chap6-available_data.csv") %>%
   mutate(state = factor(state, levels = c("A", "B", "C"))) %>%
   mutate(gender = factor(gender, levels = c("M", "F")))
-available_data_supp <- read_csv("chap5-available_data_supp.csv")
+available_data_supp <- read_csv("chap6-available_data_supp.csv")
+```
 
+# Visualizing missing data
 
-##### section 1: Visualizing missing data #####
-
+```{r}
 #Visualizing patterns of missingness in data
 md.pattern(available_data)
+```
 
-#### Subsection 1: Amount of missing data ####
+## Amount of missing data
 
+```{r}
 #Quantifying the amount of missing data for a specific variable
 min_data <- available_data %>%
   mutate(neuro = ifelse(!is.na(neuro), neuro, min(neuro, na.rm = TRUE)))
@@ -50,20 +56,29 @@ max_data <- available_data %>%
 summary(lm(bkg_amt~neuro, data=available_data))
 summary(lm(bkg_amt~neuro, data=min_data))
 summary(lm(bkg_amt~neuro, data=max_data))
+```
 
-#### Subsection 2: Correlation of missingness ####
+## Correlation of missingness
 
 ### Tacoma/Tampa example
 
-tacoma <- read_csv("chap5-tacoma.csv")
-tampa <- read_csv("chap5-tampa.csv")
+```{r}
+# Loading the data
+tacoma <- read_csv("chap6-tacoma.csv")
+tampa <- read_csv("chap6-tampa.csv")
+```
 
+```{r}
 # Tampa: highly correlated missingness
 md.pattern(tampa)
+```
 
+```{r}
 # Tacoma: uncorrelated missingness
 md.pattern(tacoma)
+```
 
+```{r}
 ##Visualizing correlation matrices
 
 # Building the correlation matrices
@@ -97,7 +112,9 @@ cormat_viz_fun <- function(){
   ggarrange(cor1, cor2, ncol = 2)
 }
 cormat_viz_fun()
+```
 
+```{r}
 ### Back to AirCnC example
 
 # Building the correlation matrix
@@ -116,29 +133,31 @@ ggplot(data = dat_cor, aes(x=X1, y=X2, fill=value)) +
                        midpoint = 0, limit = c(-1,1), space = "Lab",
                        name="Correlation") +  
   theme(axis.title.x = element_blank(),axis.title.y = element_blank())
+```
 
-##### Section 2: Diagnosing Missing Data #####
+# Diagnosing Missing Data
 
-#### Subsection 1: Causes of Missingness: Rubin’s classification ####
+## Diagnosing MCAR variables
 
-# (no code in this subsection)
-
-#### Subsection 2: Diagnosing MCAR variables ####
-
+```{r}
 # Sources of missingness
 md_extra_mod <- glm(is.na(extra)~.,
                     family = binomial(link = "logit"), 
                     data=available_data)
 summary(md_extra_mod)
+```
 
-#### Subsection 3: Diagnosing MAR variables ####
+## Diagnosing MAR variables
 
+```{r}
 # Sources of missingness
 md_state_mod <- glm(is.na(state)~.,
                     family = binomial(link = "logit"), 
                     data=available_data)
 summary(md_state_mod)
+```
 
+```{r}
 #Plotting distribution of available and missing state by age
 md_state_age <- available_data %>%
   select(age, state) %>%
@@ -152,28 +171,34 @@ md_state_age_plot <- ggplot(md_state_age, aes(x=age, col=status, lty=status)) +
                      limits=c(0, 70)) +
   scale_linetype_manual(values=c("dotted", "solid"))
 md_state_age_plot
+```
 
+```{r}
 md_state_extra <- available_data %>%
   select(extra, state) %>%
   mutate(status = ifelse(is.na(available_data$state), "missing", "observed")) %>%
   mutate(status = factor(status))
 
-md_state_extra_plot <- ggplot(md_state_extra %>% mutate(extra=ifelse(is.na(extra), -30, extra)), aes(x=extra, col=status, lty=status)) +
+md_state_extra_plot <- ggplot(md_state_extra %>% mutate(extra=ifelse(is.na(extra), -30, extra)), 
+                              aes(x=extra, col=status, lty=status)) +
   geom_density(position='identity', size=1.2) + 
   scale_x_continuous(name = "extra",
                      breaks = seq(-30, 10, 5),
                      limits=c(-30, 10)) +
   scale_linetype_manual(values=c("dotted", "solid"))
 md_state_extra_plot
+```
 
+## Diagnosing MNAR variables
 
-#### Subsection 4: Diagnosing MNAR variables ####
-
+```{r}
 md_neuro_mod <- glm(is.na(neuro)~.,
                     family = binomial(link = "logit"), 
                     data=available_data)
 summary(md_neuro_mod)
+```
 
+```{r}
 # Using another child of Neuroticism to confirm MNAR
 neuro_dat <- available_data %>%
   dplyr::select(neuro, bkg_amt) %>%
@@ -183,10 +208,17 @@ md_neuro_mod2 <- glm(is.na(neuro)~insurance,
                     family = binomial(link = "logit"), 
                     data=neuro_dat)
 summary(md_neuro_mod2)
+```
 
+```{r}
 marginplot(available_data[,c('neuro','bkg_amt')])
-marginplot(neuro_dat[,c('neuro','insurance')])
+```
 
+```{r}
+marginplot(neuro_dat[,c('neuro','insurance')])
+```
+
+```{r}
 neuro_md_viz <- function(dat){
   md_neuro <- dat %>%
     select(neuro, insurance) %>%
@@ -198,9 +230,10 @@ neuro_md_viz <- function(dat){
     scale_linetype_manual(values=c("dotted", "solid"))
   md_neuro_insur_plot
 }
-
 neuro_md_viz(neuro_dat)
+```
 
+```{r}
 neuro_md_viz2 <- function(dat){
   md_neuro <- dat %>%
     select(neuro, bkg_amt) %>%
@@ -212,42 +245,43 @@ neuro_md_viz2 <- function(dat){
     scale_linetype_manual(values=c("dotted", "solid"))
   md_neuro_insur_plot
 }
-
 neuro_md_viz2(neuro_dat)
+```
 
-#### Subsection 5: Missingness as a gradient ####
+## Missingness as a gradient
 
 # (missing code for spectrum_md_viz function here)
+NEED TO ADD CODE HERE
 
+# Handling missing data
 
+## Introduction to Multiple Imputation (MI)
 
-
-
-
-
-##### Section 3: Handling missing data #####
-
-#### Subsection 1: Introduction to Multiple Imputation (MI) ####
-
+```{r}
 MI_data <- mice(available_data, print = FALSE)
 MI_summ <- MI_data  %>%
   with(lm(bkg_amt~age+open+extra+neuro+gender+state)) %>%
   pool() %>%
   summary()
-#print(MI_summ)
+print(MI_summ)
+```
 
-#### Subsection 2: Default Imputation Method: Predictive Mean Matching ####
+## Default Imputation Method: Predictive Mean Matching
 
+```{r}
 summary(MI_data)
-
 densityplot(MI_data, thicker = 3, lty = c(1,rep(2,5)))
+```
 
-#### Subsection 3: From PMM to normal imputation (R only) ####
+## From PMM to normal imputation (R only)
 
+```{r}
 imp_meth_dist <- c("pmm", rep("norm.nob",3), "", "pmm", "norm.nob")
 MI_data_dist <- mice(available_data, print = FALSE, method = imp_meth_dist)
-#summary(MI_data_dist)
+summary(MI_data_dist)
+```
 
+```{r}
 # Visualizing variable distribution
 p1 <- ggplot(available_data, aes(x=age)) + geom_density() + xlab("Age")
 p2 <- ggplot(available_data, aes(x=open)) + geom_density() + xlab("Openness") + xlim(c(0,10))
@@ -255,7 +289,9 @@ p3 <- ggplot(available_data, aes(x=extra)) + geom_density() + xlab("Extraversion
 p4 <- ggplot(available_data, aes(x=neuro)) + geom_density() + xlab("Neuroticism") + xlim(c(0,10))
 p5 <- ggplot(available_data, aes(x=bkg_amt)) + geom_density() + xlab("Booking amount")
 ggarrange(p1, p2, p3, p4, p5, ncol = 5)
+```
 
+```{r}
 #Visualizing the difference between PMM and normal imputation with deterministically MNAR data
 
 gradient_md_viz <- function(N = 1000){
@@ -294,16 +330,21 @@ gradient_md_viz <- function(N = 1000){
   
   ggarrange(p1a, p2a, p3a, p4a, p1b, p2b, p3b, p4b, nrow=2, ncol=4)
 }
-
 gradient_md_viz(500)
+```
 
-#### Subsection 4: Adding Auxiliary Variables (R and Python) ####
+## Adding Auxiliary Variables (R and Python)
 
+```{r}
 augmented_data <- cbind(available_data, available_data_supp)
 MI_data_aux <- mice(augmented_data, print = FALSE)
 
 pred_mat <- MI_data_aux$predictorMatrix
 pred_mat
+
+```
+
+```{r}
 
 pred_mat[,"insurance"] <- 0
 pred_mat[,"active"] <- 0
@@ -311,6 +352,10 @@ pred_mat["neuro","insurance"] <- 1
 pred_mat["extra","active"] <- 1
 pred_mat
 
-#### Subsection 5: Scaling up the number of imputed datasets ####
+```
 
+##  Scaling up the number of imputed datasets
+
+```{r}
 MI_data <- mice(available_data, print = FALSE, m=20)
+```

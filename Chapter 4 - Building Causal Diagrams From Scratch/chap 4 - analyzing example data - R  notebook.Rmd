@@ -3,7 +3,7 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 3: Building CDs From Scratch
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 4: Building CDs From Scratch
 
 This script loads the example data, based on data from Antonio, de Almeida & Nunes,  "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126. and analyzes it
 
@@ -31,7 +31,7 @@ options(scipen=10)
 
 ```{r}
 #Loading the data
-dat <- read_csv("chap3-hotel_booking_case_study.csv", 
+dat <- read_csv("chap4-hotel_booking_case_study.csv", 
                 col_types = cols(
                   NRDeposit = col_factor(),
                   IsCanceled = col_factor(),

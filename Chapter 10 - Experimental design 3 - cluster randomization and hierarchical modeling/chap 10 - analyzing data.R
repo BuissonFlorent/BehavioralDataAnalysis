@@ -26,8 +26,8 @@ set.seed(1234)
 options(scipen=10)
 
 #Reading the data
-hist_data <- read_csv("chap9-historical_data.csv")
-exp_data <- read_csv("chap9-experimental_data.csv")
+hist_data <- read_csv("chap10-historical_data.csv")
+exp_data <- read_csv("chap10-experimental_data.csv")
 
 #Reformating the data
 hist_data <- hist_data %>%

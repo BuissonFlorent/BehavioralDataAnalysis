@@ -21,8 +21,8 @@ set.seed(1234)
 options(scipen=10)
 
 # Loading the data
-hist_data <- read_csv("chap8-historical_data.csv")
-exp_data <- read_csv("chap8-experimental_data.csv")
+hist_data <- read_csv("chap9-historical_data.csv")
+exp_data <- read_csv("chap9-experimental_data.csv")
 
 #Restating tier as a factor variable
 hist_data <- hist_data %>%
