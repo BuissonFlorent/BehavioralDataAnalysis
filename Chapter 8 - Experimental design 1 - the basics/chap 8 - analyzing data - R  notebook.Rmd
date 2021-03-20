@@ -9,6 +9,7 @@ This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 8: E
 ```{r}
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot)
 library(rstudioapi)
 
 # Chapter-specific libraries
@@ -60,6 +61,7 @@ pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.05, power = 0.8, alternativ
 
 ```{r}
 ### Null experimental dataset
+set.seed(1)
 exp_null_data <- hist_data %>%
   slice_sample(n=20000) %>%
   mutate(oneclick = ifelse(runif(20000)>0.5,1,0)) %>%
@@ -134,6 +136,7 @@ single_sim_fun <- function(dat, metric_fun, Nexp, eff_size, B = 100,
                            conf.level = conf.level)
   return(decision)
 }
+set.seed(1)
 single_sim_fun(hist_data, log_reg_fun, Nexp = 100, eff_size = 0.01, B = 40, 
                conf.level = 0.9)
 ```
@@ -151,7 +154,7 @@ power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim,
   power <- mean(unlist(power_list))
   return(power)
 }
-set.seed(1234)
+set.seed(1)
 power_sim_fun(dat=hist_data, metric_fun = log_reg_fun, Nexp = 4e4, 
               eff_size=0.01, Nsim=10)
 ```
