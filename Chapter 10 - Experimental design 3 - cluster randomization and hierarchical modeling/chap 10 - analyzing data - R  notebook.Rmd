@@ -148,12 +148,17 @@ stratified_pairs
 ```{r}
 # Metric function
 hlm_metric_fun <- function(dat){
-  #Estimating treatment coefficient with hierarchical regression
-  hlm_mod <- lmer(data=dat, 
+  # Estimating treatment coefficient with hierarchical regression
+  metric = tryCatch(
+    expr = {hlm_mod <- lmer(data=dat, 
                   call_CSAT ~ reason + age + group + (1|center_ID/rep_ID)
-                  #,control = lmerControl(optimizer ="Nelder_Mead")
-                  )
-  metric <- fixef(hlm_mod)["grouptreat"]
+                  ,control = lmerControl(optimizer ="Nelder_Mead"))
+    fixef(hlm_mod)["grouptreat"]}, 
+    error = function(e){
+      print('there was an error', '\n')
+      NA})
+  # Uncomment following line for debugging
+  #cat('hlm will return: ', metric, '\n')
   return(metric)
 }
 ```
