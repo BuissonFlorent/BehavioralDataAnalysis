@@ -6,23 +6,28 @@ Created on Sat Jun 13 10:07:24 2020
 """
 
 #################################
-##### This script analyzes the data used in chapter 5, 
+##### This script analyzes the data used in chapter 6, 
 ##### Handling Missing Data
 #################################
 
+##### Data and libraries #####
+
+# Common libraries
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
-from statsmodels.imputation import mice
 import statsmodels.formula.api as smf
 from statsmodels.formula.api import ols
-import seaborn as sn
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Chapter-specific libraries
+from statsmodels.imputation import mice
+import statsmodels.api as sm # For OLS call in Mice
 
 #Loading the data
-complete_data_df = pd.read_csv("chap5-complete_data.csv")
-available_data_df = pd.read_csv("chap5-available_data.csv")
-available_data_supp_df = pd.read_csv("chap5-available_data_supp.csv")
+complete_data_df = pd.read_csv("chap6-complete_data.csv")
+available_data_df = pd.read_csv("chap6-available_data.csv")
+available_data_supp_df = pd.read_csv("chap6-available_data_supp.csv")
 
 #Reformatting factor variables
 complete_data_df['gender'] = pd.Categorical(complete_data_df.gender, 
@@ -63,8 +68,8 @@ print(ols("bkg_amt~neuro", data=max_data_df).fit().summary())
 ##### 2. Level of missingness - Tacoma/Tampa illustration #####
    
 #Loading the data
-tacoma_df = pd.read_csv("chap5-tacoma.csv")
-tampa_df = pd.read_csv("chap5-tampa.csv")
+tacoma_df = pd.read_csv("chap6-tacoma.csv")
+tampa_df = pd.read_csv("chap6-tampa.csv")
     
 # Building the correlation matrices
 tampa_miss_df = tampa_df.copy().drop(['ID'], axis=1).isna()
@@ -124,9 +129,3 @@ print(MI_summ)
 augmented_data_df = pd.concat([available_data_df, available_data_supp_df], 
                               axis=1)
 MI_data_aux_df = mice.MICEData(augmented_data_df)   
-
-
-
-
-
-

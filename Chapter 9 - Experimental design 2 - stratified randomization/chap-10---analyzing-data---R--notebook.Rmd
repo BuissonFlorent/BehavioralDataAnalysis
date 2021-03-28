@@ -1,0 +1,314 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 10: Experimental design 3 - cluster randomization and hierarchical modeling
+
+# Data and libraries
+
+```{r}
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(blockTools) # For function block()
+library(caret) # For one-hot encoding function dummyVars()
+library(scales) # For function rescale()
+library(lme4) # For hierarchical modeling
+library(lmerTest) # For additional diagnostics of hierarchical modeling
+library(nbpMatching) #To use 'optimal' algorithm in stratified randomization
+library(binaryLogic) # For function as.binary()
+
+# Libraries for high-performance Bootstrap
+library(Rfast)
+library(doParallel)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+set.seed(1234)
+options(scipen=10)
+```
+
+```{r}
+#Reading the data
+hist_data <- read_csv("chap10-historical_data.csv")
+exp_data <- read_csv("chap10-experimental_data.csv")
+
+#Reformating the data
+hist_data <- hist_data %>%
+  mutate(center_ID = factor(center_ID)) %>%
+  mutate(rep_ID = factor(rep_ID)) %>%
+  mutate(reason = factor(reason)) %>%
+  select(-M6Spend)
+exp_data <- exp_data %>%
+  mutate(center_ID = factor(center_ID, levels = levels(hist_data$center_ID))) %>%
+  mutate(rep_ID = factor(rep_ID, levels = levels(hist_data$rep_ID))) %>%
+  mutate(reason = factor(reason, levels = levels(hist_data$reason))) %>%
+  mutate(group = factor(group)) %>%
+  select(-M6Spend)
+```
+
+# Introduction to hierarchical modeling 
+
+```{r}
+hlm_mod <- lmer(data=hist_data, call_CSAT ~ reason + age + (1|center_ID))
+summary(hlm_mod)
+```
+
+```{r}
+hist_data %>%
+  group_by(center_ID)%>%
+  summarize(call_CSAT = mean(call_CSAT)) %>%
+  summarize(sd = sd(call_CSAT))
+```
+
+```{r}
+hist_data %>%
+  group_by(rep_ID) %>%
+  summarise(call_CSAT = mean(call_CSAT)) %>%
+  summarise(sd = sd(call_CSAT))
+```
+
+```{r}
+hlm_mod2 <- lmer(data=hist_data,
+                 call_CSAT ~ reason + age + (1|center_ID/rep_ID),
+                 control = lmerControl(optimizer ="Nelder_Mead"))
+summary(hlm_mod2)
+```
+
+# Determining random assignment and sample size/power
+
+## Random assignment
+
+```{r}
+# Function to prep the data
+strat_prep_fun <- function(dat){
+  # Extracting property-level variables
+  dat <- dat %>%
+    group_by(center_ID) %>%
+    summarise(nreps = n_distinct(rep_ID),
+              avg_call_CSAT = mean(call_CSAT), 
+              avg_age = mean(age),
+              pct_reason_pmt = sum(reason == 'payment')/n()) %>%
+    ungroup()
+  
+  #Isolating the different components of our data
+  center_ID <- dat$center_ID  # Center identifier
+  dat <- dat %>% select(-center_ID)
+  num_vars <- dat %>%
+    #Selecting numeric variables
+    select_if(function(x) is.numeric(x)|is.integer(x)) 
+  
+  #Normalizing numeric variables
+  num_vars_out <- num_vars %>%
+    mutate_all(rescale)
+  
+  #Putting the variables back together
+  dat_out <- cbind(center_ID, num_vars_out)  %>%
+    mutate(center_ID = as.character(center_ID)) %>%
+    mutate_if(is.numeric, function(x) round(x, 4)) #Rounding for readability
+  
+  return(dat_out)
+}
+prepped_data <- strat_prep_fun(hist_data)
+print(prepped_data)
+```
+
+```{r}
+#Using a wrapper function to get the stratified pairs
+block_wrapper_fun <- function(dat){
+  
+  prepped_data <- strat_prep_fun(dat)
+  
+  #Getting stratified assignment
+  assgt <- prepped_data %>%
+    block(id.vars = c("center_ID"), n.tr = 2, 
+          algorithm = "optimal", distance = "euclidean") %>%
+    assignment() 
+  assgt <- assgt$assg$`1` 
+  assgt <- assgt %>%
+    select(-'Distance')
+  
+  assgt <- as.matrix(assgt) %>% apply(2, function(x) as.integer(x))
+  return(assgt)
+}
+stratified_pairs <- block_wrapper_fun(hist_data)
+stratified_pairs
+
+```
+
+## Power analysis
+
+```{r}
+# Metric function
+hlm_metric_fun <- function(dat){
+  # Estimating treatment coefficient with hierarchical regression
+  metric = tryCatch(
+    expr = {hlm_mod <- lmer(data=dat, 
+                  call_CSAT ~ reason + age + group + (1|center_ID/rep_ID)
+                  ,control = lmerControl(optimizer ="Nelder_Mead"))
+    fixef(hlm_mod)["grouptreat"]}, 
+    error = function(e){
+      print('there was an error', '\n')
+      NA})
+  # Uncomment following line for debugging
+  #cat('hlm will return: ', metric, '\n')
+  return(metric)
+}
+```
+
+```{r}
+# Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B=20, conf.level=0.9){
+  
+  boot_vec <- sapply(1:B, function(x){
+    #cat("bootstrap iteration ", x, "\n")
+    metric_fun(slice_sample(dat, n = nrow(dat), replace = TRUE))})
+  boot_vec <- sort(boot_vec, decreasing = FALSE)
+  offset = round(B * (1 - conf.level) / 2)
+  CI <- c(boot_vec[offset], boot_vec[B+1-offset])
+  return(CI)
+}
+```
+
+```{r}
+# Decision function
+decision_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  boot_CI <- boot_CI_fun(dat, metric_fun, B = B, conf.level = conf.level)
+  decision <- ifelse(boot_CI[1]>0,1,0)
+  return(decision)
+}
+```
+
+```{r}
+# Function creating a permutation from an integer (starting at zero)
+permutation_gen_fun <- function(i, stratified_pairs){
+  Npairs <- nrow(stratified_pairs)
+  bin_str <- as.binary(i, n=Npairs)
+  idx <- matrix(c(1:Npairs, bin_str), nrow = Npairs)
+  idx[,2] <- idx[,2] + 1
+  treat <- stratified_pairs[idx]
+  return(treat)
+}
+permutation_gen_fun(0, stratified_pairs)
+permutation_gen_fun(15, stratified_pairs)
+```
+
+```{r}
+# Power simulation function 
+power_sim_fun <- function(dat, metric_fun, Nexp = 1000, eff_size = 0, B = 20, conf.level = 0.9){
+  #Extract the stratified pairs
+  stratified_pairs <- block_wrapper_fun(dat)
+  Npairs <- nrow(stratified_pairs)
+  Nmonths <- length(unique(dat$month))
+  Nperm <- 2^Npairs
+  Nsim <- Nmonths * Nperm
+  
+  power_list <- vector(mode = "list", length = Nsim)
+  i <- 1
+  for(m in unique(dat$month)){
+    #Sample down the data
+    sample_data <- filter(dat, month==m) %>%
+      dplyr::group_by(rep_ID) %>%
+      slice_sample(n = Nexp) %>%
+      dplyr::ungroup()
+    
+    for(perm in 0:(Nperm-1)){
+      treat <- permutation_gen_fun(perm, stratified_pairs)
+      
+      sim_data <- sample_data %>%
+        mutate(group = ifelse(center_ID %in% treat, 'treat', 'ctrl')) %>%
+        mutate(group = as.factor(group))
+      
+      sim_data <- sim_data %>%
+        mutate(call_CSAT = ifelse(group == 'treat', 
+                                  call_CSAT + eff_size, call_CSAT)) %>%
+        #Ensuring that call CSAT remains between 0 and 10
+        mutate(call_CSAT = pmax(call_CSAT, 0)) %>%
+        mutate(call_CSAT = pmin(call_CSAT, 10))
+      
+      # Calculate the decision
+      power_list[[i]] <- decision_fun(sim_data, metric_fun, B = B, conf.level = conf.level)
+      i <- i + 1
+    }
+  }
+  power <- mean(unlist(power_list))
+  return(power)
+}
+p <- power_sim_fun(hist_data, hlm_metric_fun, Nexp = 230000, eff_size = 0, B = 20, conf.level = 0.9)
+p
+```
+
+```{r}
+#Loading the saved output from the simulations
+sig_dat <- read_csv("sig_dat.csv")
+
+viz_fun9.3 <- function(){
+  ggplot(sig_dat %>% filter(conf.level==0.90) %>% arrange(lower_bound), aes(y=1:96)) + 
+    geom_linerange(aes(xmin=lower_bound, xmax=upper_bound)) +
+    geom_vline(xintercept = 0, col='red') +
+    ylab("Ordered confidence intervals") +
+    xlab("Coefficient for experimental treatment")
+}
+viz_fun9.3()
+```
+
+
+```{r}
+#Loading the saved output from the simulations
+ES_dat <- read_csv("ES_dat.csv")
+
+viz_fun9.4 <- function(){
+  power_dat <- ES_dat %>%
+  group_by(eff_size)  %>%
+  summarise(power = sum(lower_bound > 0)/n()) %>%
+  ungroup() %>%
+  rbind(sig_dat %>% filter(conf.level == 0.90) %>%
+          group_by(eff_size)  %>%
+          summarise(power = sum(lower_bound > 0)/n()))
+  
+  p <- ggplot(power_dat, aes(x = eff_size, y = power)) +
+    geom_point() + ylim(c(0,1)) + xlab("effect size") +
+    geom_line(data = power_dat %>% filter(eff_size != 0)) + 
+    geom_label(x=0.05, y=0.555, label="significance") +
+    geom_hline(yintercept = 0.80, col = 'red')
+  return(p)
+}
+viz_fun9.4()
+```
+
+
+```{r}
+viz_fun9.5 <- function(){
+  power_dat2 <- ES_dat %>%
+  group_by(eff_size)  %>%
+  summarise(power = sum(lower_bound > 0.25)/n()) %>%
+  ungroup() %>%
+  rbind(sig_dat %>% filter(conf.level == 0.90) %>%
+          group_by(eff_size)  %>%
+          summarise(power = sum(lower_bound > 0.25)/n()))
+  p <- ggplot(power_dat2, aes(x = eff_size, y = power)) +
+    geom_point() + ylim(c(0,1)) + xlab("effect size") +
+    geom_line(data = power_dat2 %>% filter(eff_size != 0)) + 
+    geom_label(x=0.035, y=0.325, label="significance") +
+    geom_hline(yintercept = 0.80, col = 'red')
+  return(p)
+}
+viz_fun9.5()
+```
+# Analyzing the experiment
+
+```{r}
+coeff <- hlm_metric_fun(exp_data)
+print(coeff)
+
+hlm_CI <- boot_CI_fun(exp_data, hlm_metric_fun)
+print(hlm_CI)
+
+```

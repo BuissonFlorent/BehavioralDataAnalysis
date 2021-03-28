@@ -140,31 +140,38 @@ md_state_mod <- glm(is.na(state)~.,
 summary(md_state_mod)
 
 #Plotting distribution of available and missing state by age
-md_state_age <- available_data %>%
-  select(age, state) %>%
-  mutate(status = ifelse(is.na(available_data$state), "missing", "observed")) %>%
-  mutate(status = factor(status))
+viz_fun_6.16 <- function(dat){
+  md_state_age <- dat %>%
+    select(age, state) %>%
+    mutate(status = ifelse(is.na(dat$state), "missing", "observed")) %>%
+    mutate(status = factor(status))
+  
+  ggplot(md_state_age, aes(x=age, col=status, lty=status, size=status, alpha=status)) +
+    geom_freqpoly(position='identity') + 
+    scale_x_continuous(name = "age",
+                       breaks = seq(0, 70, 5),
+                       limits=c(0, 70)) +
+    scale_linetype_manual(values=c("dotted", "solid")) +
+    scale_size_manual(values=c(1.25,0.5)) +
+    scale_alpha_manual(values=c(1,0.75)) + theme_classic()
+}
+viz_fun_6.16(available_data)
 
-md_state_age_plot <- ggplot(md_state_age, aes(x=age, col=status, lty=status)) +
-  geom_density(position='identity', size=1.2) + 
-  scale_x_continuous(name = "age",
-                     breaks = seq(0, 70, 5),
-                     limits=c(0, 70)) +
-  scale_linetype_manual(values=c("dotted", "solid"))
-md_state_age_plot
-
-md_state_extra <- available_data %>%
-  select(extra, state) %>%
-  mutate(status = ifelse(is.na(available_data$state), "missing", "observed")) %>%
-  mutate(status = factor(status))
-
-md_state_extra_plot <- ggplot(md_state_extra %>% mutate(extra=ifelse(is.na(extra), -30, extra)), aes(x=extra, col=status, lty=status)) +
-  geom_density(position='identity', size=1.2) + 
-  scale_x_continuous(name = "extra",
-                     breaks = seq(-30, 10, 5),
-                     limits=c(-30, 10)) +
-  scale_linetype_manual(values=c("dotted", "solid"))
-md_state_extra_plot
+viz_fun_6.17 <- function(dat){
+  md_state_extra <- dat %>%
+    select(extra, state) %>%
+    mutate(status = ifelse(is.na(dat$state), "missing", "observed")) %>%
+    mutate(status = factor(status))
+  
+  ggplot(md_state_extra %>% mutate(extra=ifelse(is.na(extra), -10, extra)), 
+         aes(x=extra, col=status, lty=status, size=status, alpha=status)) +
+    geom_freqpoly(position='identity') + 
+    scale_x_continuous(name = "extra", limits=c(-15, 10)) +
+    scale_linetype_manual(values=c("dotted", "solid")) +
+    scale_size_manual(values=c(1.25,0.5)) +
+    scale_alpha_manual(values=c(1,0.75)) + theme_classic()
+}
+viz_fun_6.17(available_data)
 
 
 #### Subsection 4: Diagnosing MNAR variables ####
@@ -175,57 +182,68 @@ md_neuro_mod <- glm(is.na(neuro)~.,
 summary(md_neuro_mod)
 
 # Using another child of Neuroticism to confirm MNAR
-neuro_dat <- available_data %>%
-  dplyr::select(neuro, bkg_amt) %>%
-  mutate(insurance = available_data_supp$insurance)
-
-md_neuro_mod2 <- glm(is.na(neuro)~insurance,
-                    family = binomial(link = "logit"), 
-                    data=neuro_dat)
-summary(md_neuro_mod2)
-
-marginplot(available_data[,c('neuro','bkg_amt')])
-marginplot(neuro_dat[,c('neuro','insurance')])
-
-neuro_md_viz <- function(dat){
-  md_neuro <- dat %>%
-    select(neuro, insurance) %>%
-    mutate(status = ifelse(is.na(dat$neuro), "missing", "observed")) %>%
+viz_fun_6.18 <- function(dat1, dat2){
+  neuro_dat <- dat1 %>%
+    dplyr::select(neuro, bkg_amt) %>%
+    mutate(insurance = dat2$insurance) %>%
+    select(neuro, insurance)
+  neuro_dat <- neuro_dat %>%
+    mutate(status = ifelse(is.na(neuro_dat$neuro), "missing", "observed")) %>%
     mutate(status = factor(status))
   
-  md_neuro_insur_plot <- ggplot(md_neuro, aes(x=insurance, col=status, lty=status)) +
-    geom_density(position='identity', size=1.2) + 
-    scale_linetype_manual(values=c("dotted", "solid"))
-  md_neuro_insur_plot
+  ggplot(neuro_dat, aes(x=insurance, col=status, lty=status, size=status, alpha=status)) +
+    geom_freqpoly(position='identity') + 
+    scale_x_continuous(name = "insurance") +
+    scale_linetype_manual(values=c("dotted", "solid")) +
+    scale_size_manual(values=c(1.25,0.5)) +
+    scale_alpha_manual(values=c(1,0.75)) + theme_classic()
 }
+viz_fun_6.18(available_data, available_data_supp)
 
-neuro_md_viz(neuro_dat)
+#### Subsection 5: Missingness as a spectrum ####
 
-neuro_md_viz2 <- function(dat){
-  md_neuro <- dat %>%
-    select(neuro, bkg_amt) %>%
-    mutate(status = ifelse(is.na(dat$neuro), "missing", "observed")) %>%
-    mutate(status = factor(status))
+viz_fun_6.20 <- function(N = 100){
+  dat <- tibble(
+    X = runif(N,2.5,7.5),
+    Y = X + rnorm(N,0,2)
+  )
+  dat1 <- dat %>%
+    mutate(prob_miss = 0.5) %>%
+    mutate(miss = ifelse(runif(N,0,1)>=prob_miss, 'Y', 'N'))
+  p1a <- ggplot(dat1, aes(x=X,y=Y)) + geom_point(aes(alpha=0.5, col=miss, shape=miss), show.legend = FALSE) + 
+    xlim(c(0,10)) + ylim(c(0,10)) + theme_classic() + scale_shape_manual(values=c(4, 15))
+  p1b <- ggplot(dat1, aes(x=X,y=prob_miss)) + geom_line() + 
+    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10)) + theme_classic()
   
-  md_neuro_insur_plot <- ggplot(md_neuro, aes(x=bkg_amt, col=status, lty=status)) +
-    geom_density(position='identity', size=1.2) + 
-    scale_linetype_manual(values=c("dotted", "solid"))
-  md_neuro_insur_plot
+  dat2 <- dat %>%
+    mutate(prob_miss = logistic(X-5, a=1.5)) %>%
+    mutate(miss = ifelse(runif(N,0,1)>=prob_miss, 'Y', 'N'))
+  p2a <- ggplot(dat2, aes(x=X,y=Y)) + geom_point(aes(alpha=0.5, col=miss, shape=miss), show.legend = FALSE) + 
+    xlim(c(0,10)) + ylim(c(0,10)) + theme_classic() + scale_shape_manual(values=c(4, 15))
+  p2b <- ggplot(dat2, aes(x=X,y=prob_miss)) + geom_line() + 
+    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10)) + theme_classic()
+  
+  dat3 <- dat %>%
+    mutate(prob_miss = ifelse(X<=5,0,1)) %>%
+    mutate(miss = ifelse(runif(N,0,1)>=prob_miss, 'Y', 'N'))
+  p3a <- ggplot(dat3, aes(x=X,y=Y)) + geom_point(aes(alpha=0.5, col=miss, shape=miss), show.legend = FALSE) + 
+    xlim(c(0,10)) + ylim(c(0,10)) + theme_classic() + scale_shape_manual(values=c(4, 15))
+  p3b <- ggplot(dat3, aes(x=X,y=prob_miss)) + geom_line() + 
+    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10)) + theme_classic()
+  
+  ggarrange(p1a, p2a, p3a, p1b, p2b, p3b, nrow=2, ncol=3)
 }
+viz_fun_6.20(200)
 
-neuro_md_viz2(neuro_dat)
+viz_fun_6.21 <- function(dat){
+  p1 <- ggplot(dat, aes(x=open)) + geom_histogram() + xlim(c(0,10)) + theme_classic()
+  p2 <- ggplot(dat, aes(x=extra)) + geom_histogram() + xlim(c(0,10)) + theme_classic()
+  p3 <- ggplot(dat, aes(x=neuro)) + geom_histogram() + xlim(c(0,10)) + theme_classic()
+  ggarrange(p1, p2, p3, nrow=3, ncol=1)
+}
+viz_fun_6.21(available_data)
 
-#### Subsection 5: Missingness as a gradient ####
-
-# (missing code for spectrum_md_viz function here)
-
-
-
-
-
-
-
-##### Section 3: Handling missing data #####
+##### Section 4: Handling missing data #####
 
 #### Subsection 1: Introduction to Multiple Imputation (MI) ####
 
@@ -234,74 +252,61 @@ MI_summ <- MI_data  %>%
   with(lm(bkg_amt~age+open+extra+neuro+gender+state)) %>%
   pool() %>%
   summary()
-#print(MI_summ)
+print(MI_summ)
 
 #### Subsection 2: Default Imputation Method: Predictive Mean Matching ####
 
+# Getting summary of defaults
 summary(MI_data)
 
+#Visualizing imputed datasets
 densityplot(MI_data, thicker = 3, lty = c(1,rep(2,5)))
 
 #### Subsection 3: From PMM to normal imputation (R only) ####
 
+# Creating a vector of imputation methods variable by variable
 imp_meth_dist <- c("pmm", rep("norm.nob",3), "", "pmm", "norm.nob")
 MI_data_dist <- mice(available_data, print = FALSE, method = imp_meth_dist)
 #summary(MI_data_dist)
 
 # Visualizing variable distribution
-p1 <- ggplot(available_data, aes(x=age)) + geom_density() + xlab("Age")
-p2 <- ggplot(available_data, aes(x=open)) + geom_density() + xlab("Openness") + xlim(c(0,10))
-p3 <- ggplot(available_data, aes(x=extra)) + geom_density() + xlab("Extraversion") + xlim(c(0,10))
-p4 <- ggplot(available_data, aes(x=neuro)) + geom_density() + xlab("Neuroticism") + xlim(c(0,10))
-p5 <- ggplot(available_data, aes(x=bkg_amt)) + geom_density() + xlab("Booking amount")
-ggarrange(p1, p2, p3, p4, p5, ncol = 5)
-
-#Visualizing the difference between PMM and normal imputation with deterministically MNAR data
-
-gradient_md_viz <- function(N = 1000){
-  dat <- tibble(
-    X = rnorm(N,5,1),
-    Y = X + rnorm(N,0,1)
-  )
-  
-  dat1 <- dat %>%
-    mutate(prob_miss = 0.5) %>%
-    mutate(Y = ifelse(runif(N,0,1)>=prob_miss, Y, NA))
-  p1a <- ggplot(dat1, aes(x=X,y=Y)) + geom_point() + xlim(c(0,10)) + ylim(c(0,10))
-  p1b <- ggplot(dat1, aes(x=X,y=prob_miss)) + geom_point() + 
-    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10))
-  
-  dat2 <- dat %>%
-    mutate(prob_miss = logistic(X-5, a=0.5, c=0.25, z=0.75)) %>%
-    mutate(Y = ifelse(runif(N,0,1)>=prob_miss, Y, NA))
-  p2a <- ggplot(dat2, aes(x=X,y=Y)) + geom_point() + xlim(c(0,10)) + ylim(c(0,10))
-  p2b <- ggplot(dat2, aes(x=X,y=prob_miss)) + geom_point() + 
-    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10))
-  
-  dat3 <- dat %>%
-    mutate(prob_miss = logistic(X-5, a=1.5)) %>%
-    mutate(Y = ifelse(runif(N,0,1)>=prob_miss, Y, NA))
-  p3a <- ggplot(dat3, aes(x=X,y=Y)) + geom_point() + xlim(c(0,10)) + ylim(c(0,10))
-  p3b <- ggplot(dat3, aes(x=X,y=prob_miss)) + geom_point() + 
-    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10))
-  
-  dat4 <- dat %>%
-    mutate(prob_miss = ifelse(X<=5,0,1)) %>%
-    mutate(Y = ifelse(runif(N,0,1)>=prob_miss, Y, NA))
-  p4a <- ggplot(dat4, aes(x=X,y=Y)) + geom_point() + xlim(c(0,10)) + ylim(c(0,10))
-  p4b <- ggplot(dat4, aes(x=X,y=prob_miss)) + geom_point() + 
-    ylim(c(0,1)) + ylab("prob. missingness") + xlim(c(0,10))
-  
-  ggarrange(p1a, p2a, p3a, p4a, p1b, p2b, p3b, p4b, nrow=2, ncol=4)
+viz_fun_6.24 <- function(dat){
+  p1 <- ggplot(dat, aes(x=age)) + geom_density() + xlab("Age") + theme_classic() 
+  p2 <- ggplot(dat, aes(x=open)) + geom_density() + xlab("Openness") + xlim(c(0,10)) + theme_classic()
+  p3 <- ggplot(dat, aes(x=extra)) + geom_density() + xlab("Extraversion") + xlim(c(0,10)) + theme_classic()
+  p4 <- ggplot(dat, aes(x=neuro)) + geom_density() + xlab("Neuroticism") + xlim(c(0,10)) + theme_classic()
+  p5 <- ggplot(dat, aes(x=bkg_amt)) + geom_density() + xlab("Booking amount") + theme_classic()
+  ggarrange(p1, p2, p3, p4, p5, ncol = 5)
 }
+viz_fun_6.24(available_data)
 
-gradient_md_viz(500)
+# Visualizing the difference between PMM and normal imputation with deterministically MNAR data
+viz_fun_6.25 <- function(MI_data, MI_data_dist){
+  sample_complete_dist <- complete(MI_data_dist,1) %>%
+    mutate(md_ind = is.na(available_data$neuro)) %>%
+    select(age, neuro, md_ind)
+  sample_complete <- complete(MI_data,1) %>%
+    mutate(md_ind = is.na(available_data$neuro)) %>%
+    select(age, neuro, md_ind)
+  
+  p1 <- ggplot(sample_complete, aes(x=neuro, y=age)) + xlim(c(0,10)) +
+    geom_point(data=sample_complete%>%filter(md_ind), shape=4, col='red') + 
+    geom_point(data=sample_complete%>%filter(!md_ind), shape=15, alpha=0.25, col='blue') + theme_classic()
+  p2 <- ggplot(sample_complete_dist, aes(x=neuro, y=age)) + xlim(c(0,10)) +
+    geom_point(data=sample_complete_dist%>%filter(md_ind), shape=4, col='red') + 
+    geom_point(data=sample_complete_dist%>%filter(!md_ind), shape=15, alpha=0.25, col='blue') + theme_classic()
+  ggarrange(p1,p2, nrow=2)
+}
+viz_fun_6.25(MI_data, MI_data_dist)
 
 #### Subsection 4: Adding Auxiliary Variables (R and Python) ####
 
+# Adding the auxiliary variables
 augmented_data <- cbind(available_data, available_data_supp)
+# Standard imputation with the added auxiliary variables
 MI_data_aux <- mice(augmented_data, print = FALSE)
 
+# Modifying the predictor matrix to avoid integrating random correlations
 pred_mat <- MI_data_aux$predictorMatrix
 pred_mat
 
@@ -313,4 +318,5 @@ pred_mat
 
 #### Subsection 5: Scaling up the number of imputed datasets ####
 
+# Increasing the number of imputed datasets
 MI_data <- mice(available_data, print = FALSE, m=20)
