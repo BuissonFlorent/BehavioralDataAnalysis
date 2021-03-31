@@ -168,7 +168,6 @@ hlm_metric_fun <- function(dat){
 boot_CI_fun <- function(dat, metric_fun, B=20, conf.level=0.9){
   
   boot_vec <- sapply(1:B, function(x){
-    #cat("bootstrap iteration ", x, "\n")
     metric_fun(slice_sample(dat, n = nrow(dat), replace = TRUE))})
   boot_vec <- sort(boot_vec, decreasing = FALSE)
   offset = round(B * (1 - conf.level) / 2)
