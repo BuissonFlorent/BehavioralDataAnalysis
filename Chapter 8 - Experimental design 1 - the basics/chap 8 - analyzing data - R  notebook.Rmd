@@ -161,8 +161,8 @@ power_sim_fun(dat=hist_data, metric_fun = log_reg_fun, Nexp = 4e4,
 
 
 ```{r}
-# Figure 7-3 Power simulations for various sample sizes
-viz_fun7.3 <- function(){
+# Figure 8-3 Power simulations for various sample sizes
+viz_fun8.3 <- function(){
   power_res <- tibble(
     N = c(4e4, 3e4, 5e4, 35e3, 45e3),
     Nsim = c(20, 100, 100, 200, 200),
@@ -175,15 +175,13 @@ viz_fun7.3 <- function(){
     geom_point(aes(shape=Nsim, size = 2)) + 
     scale_shape_manual(values=c(4, 20, 15)) +
     geom_line(linetype = "dashed", col='blue') + 
-    guides(size=FALSE)
+    guides(size=FALSE) + theme_classic()
 }
-viz_fun7.3()
+viz_fun8.3()
 ```
 
 ```{r}
-#Optimized functions necessary to build figure 7-4
-library(Rfast)
-library(doParallel)
+#Optimized functions necessary to build figure 8-4
 
 ### Setting up the data
 
@@ -267,36 +265,33 @@ opt_power_fun <- function(mat, es, N, Nsim){
 ```
 
 ```{r}
-### Figure 7-4. Power simulations for various effect sizes at N = 40,000, 
+### Figure 8-4. Power simulations for various effect sizes at N = 40,000, 
 ### with 200 simulations per effect size, dashed line at power = 0.9
 
 # WARNING! THIS VISUALIZATION USES THE OPTIMIZED FUNCTIONS DEFINED IN THE PREVIOUS CHUNK
+# es_lst <- seq(from=0.005, to=0.02, by=0.001)
+# es_res <- vector(mode='numeric', length=length(es_lst))
+# for(i in 1:length(es_lst)){
+#   es_res[i] <- opt_power_fun(hist_mat, es=es_lst[i], N=4e4, Nsim=400)
+#   }
+# 
+# eff_size_dat <- tibble(
+#   effect_size = es_lst,
+#   power = es_res
+# )
+# 
+# write_csv(eff_size_dat, "eff_size_dat.csv")
 
-viz_fun7.4 <- function(){
-  es_lst <- seq(from=0.005, to=0.02, by=0.001)
-  es_res <- vector(mode='numeric', length=length(es_lst))
-  for(i in 1:length(es_lst)){
-    es_res[i] <- opt_power_fun(hist_mat, es=es_lst[i], N=4e4, Nsim=400)
-  }
-  beep()
-  
-  #Calculating statistical significance of our analysis
-  stat.sig <- opt_power_fun(hist_mat, es=0, N=4e4, Nsim=200)
-  beep()
-  
-  power_ss_res <- tibble(
-    effect_size = es_lst,
-    power = es_res
-  )
-  
-  power_ss_res
-  
-  ggplot(power_ss_res, aes(x=effect_size, y=power)) + 
+eff_size_dat <- read_csv("eff_size_dat.csv")
+
+viz_fun8.4 <- function(eff_size_dat){
+  ggplot(eff_size_dat, aes(x=effect_size, y=power)) + 
     geom_point() + ylim(c(0,1)) +
     geom_line(col='blue') + 
-    geom_hline(yintercept = 0.9, col= 'red', linetype = "dashed")
+    geom_hline(yintercept = 0.9, col= 'red', linetype = "dashed") +
+    theme_classic()
 }
-viz_fun7.4()
+viz_fun8.4(eff_size_dat)
 ```
 
 # Analyzing and interpreting experimental results

@@ -248,14 +248,14 @@ p
 #Loading the saved output from the simulations
 sig_dat <- read_csv("sig_dat.csv")
 
-viz_fun9.3 <- function(){
+viz_fun10.3 <- function(sig_dat){
   ggplot(sig_dat %>% filter(conf.level==0.90) %>% arrange(lower_bound), aes(y=1:96)) + 
     geom_linerange(aes(xmin=lower_bound, xmax=upper_bound)) +
     geom_vline(xintercept = 0, col='red') +
     ylab("Ordered confidence intervals") +
-    xlab("Coefficient for experimental treatment")
+    xlab("Coefficient for experimental treatment") + theme_classic()
 }
-viz_fun9.3()
+viz_fun10.3(sig_dat)
 ```
 
 
@@ -263,7 +263,7 @@ viz_fun9.3()
 #Loading the saved output from the simulations
 ES_dat <- read_csv("ES_dat.csv")
 
-viz_fun9.4 <- function(){
+viz_fun9.4 <- function(ES_dat){
   power_dat <- ES_dat %>%
   group_by(eff_size)  %>%
   summarise(power = sum(lower_bound > 0)/n()) %>%
@@ -273,18 +273,18 @@ viz_fun9.4 <- function(){
           summarise(power = sum(lower_bound > 0)/n()))
   
   p <- ggplot(power_dat, aes(x = eff_size, y = power)) +
+     geom_hline(yintercept = 0.80, col = 'red') + theme_classic() +
     geom_point() + ylim(c(0,1)) + xlab("effect size") +
     geom_line(data = power_dat %>% filter(eff_size != 0)) + 
-    geom_label(x=0.05, y=0.555, label="significance") +
-    geom_hline(yintercept = 0.80, col = 'red')
+    geom_label(x=0.03, y=0.555, label="significance")
   return(p)
 }
-viz_fun9.4()
+viz_fun9.4(ES_dat )
 ```
 
 
 ```{r}
-viz_fun9.5 <- function(){
+viz_fun10.5 <- function(ES_dat){
   power_dat2 <- ES_dat %>%
   group_by(eff_size)  %>%
   summarise(power = sum(lower_bound > 0.25)/n()) %>%
@@ -296,10 +296,11 @@ viz_fun9.5 <- function(){
     geom_point() + ylim(c(0,1)) + xlab("effect size") +
     geom_line(data = power_dat2 %>% filter(eff_size != 0)) + 
     geom_label(x=0.035, y=0.325, label="significance") +
-    geom_hline(yintercept = 0.80, col = 'red')
+    geom_hline(yintercept = 0.80, col = 'red') +
+    theme_classic()
   return(p)
 }
-viz_fun9.5()
+viz_fun10.5(ES_dat)
 ```
 # Analyzing the experiment
 

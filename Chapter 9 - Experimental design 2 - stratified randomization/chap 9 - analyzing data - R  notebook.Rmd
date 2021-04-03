@@ -257,16 +257,17 @@ opt_power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim, B = 100, co
 # Loading the results of the simulations I have run
 pow_sim_res <- read_csv("pow_sim_res.csv")
 
-viz_fun8.3 <- function(){
+viz_fun9.3 <- function(){
   ggplot(pow_sim_res, aes(x = sample_size, y = power)) + 
     scale_x_continuous(limits = c(0, 6000), breaks=seq(0,6000,500)) + 
     scale_y_continuous(limits = c(0, 1), breaks=seq(0,1,0.1)) +
     geom_hline(yintercept = 0.9, col = 'red') +
     xlab("sample size") + ylab("power") + labs(size = "number of\nsimulations") +
     geom_point(aes(size=Nsim), alpha = 0.5) + 
-    geom_label(aes(label=sim.id), nudge_x = 100, nudge_y = -0.05)
+    geom_label(aes(label=sim.id), nudge_x = 100, nudge_y = -0.05) +
+    theme_classic()
 }
-viz_fun8.3()
+viz_fun9.3()
 ```
 
 ```{r}
@@ -274,23 +275,23 @@ viz_fun8.3()
 # Loading the results of the simulations I have run
 es_sim_res <- read_csv("es_sim_res.csv")
 
-viz_fun8.4 <- function(){
+viz_fun9.4 <- function(es_sim_res){
   ggplot(es_sim_res, aes(x = ES, y = power90)) + geom_point() +
     geom_line(data=(es_sim_res %>% filter(ES != 0)), aes(x = ES, y = power90), inherit.aes = FALSE) + 
     geom_hline(yintercept = 0.9, col = 'red') +
-    xlab("effect size") + 
-    geom_label(x=0.025, y=0.055, label="significance")
+    xlab("effect size") + ylab("power") +
+    geom_label(x=0.1, y=0.055, label="significance") + theme_classic()
 }
-viz_fun8.4()
+viz_fun9.4(es_sim_res)
 ```
 
 ```{r}
-### Figure 8-5. Comparison of power curves for confidence levels 0.90 (solid line),  0.80 (dashed line) and 0.60 (dotted line)
-viz_fun8.5 <- function(){
+### Figure 9-5. Comparison of power curves for confidence levels 0.90 (solid line),  0.80 (dashed line) and 0.60 (dotted line)
+viz_fun9.5 <- function(es_sim_res){
   ggplot(es_sim_res, aes(x = ES, y = power90)) + geom_point() +
     geom_line(aes(x = ES, y = power90), inherit.aes = FALSE) + 
     geom_hline(yintercept = 0.9, col = 'red') +
-    xlab("effect size") + 
+    xlab("effect size") + ylab("power") +
     #Values for confidence level 0.80
     geom_point(aes(x = ES, y = power80)) +
     geom_line(aes(x = ES, y = power80), inherit.aes = FALSE,
@@ -303,9 +304,10 @@ viz_fun8.5 <- function(){
     geom_point(aes(x = ES, y = power40)) +
     geom_line(aes(x = ES, y = power40), inherit.aes = FALSE,
               linetype = 'dotted') +
-    geom_label(x=0.025, y=0.2, label="significance")
+    geom_label(x=0.1, y=0.2, label="significance") +
+    theme_classic()
 }
-viz_fun8.5()
+viz_fun9.5(es_sim_res)
 ```
 
 # Analyzing and interpreting experimental results

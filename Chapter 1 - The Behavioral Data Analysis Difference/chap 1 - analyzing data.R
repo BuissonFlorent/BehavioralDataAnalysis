@@ -20,6 +20,19 @@ options(scipen=10)
 
 ##### Why we need causal analytics to explain human behavior #####
 
+viz_fun_1.2 <- function(){
+  set.seed(1)
+  N <- 200
+  dat <- tibble(
+    X = runif(N, 25, 100),
+    Y = rnorm(N,3,0.5) * X + rnorm(N,0,10)
+  )
+  ggplot(data=dat, aes(x=X, y=Y)) + geom_point() + 
+    xlim(c(0,100)) + ylim(c(0,400)) + theme_classic() +
+    geom_smooth(formula = 'y~x', method = lm, se = FALSE, fullrange=TRUE)
+}
+viz_fun_1.2()
+
 ##### Confound it! The hidden dangers of letting regression sort it out #####
 
 #### First example: stand data ####

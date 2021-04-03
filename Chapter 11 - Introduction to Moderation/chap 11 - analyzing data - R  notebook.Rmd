@@ -61,7 +61,7 @@ viz_fun_11.3 <- function(dat){
   mod_p0 <- ggplot(summary_dat0, aes(x=children, y=avg_duration, 
                                      group=play_area)) + ylim(c(0,65)) + 
     geom_point() + geom_line(aes(lty=play_area)) + ylab("Average visit duration") +
-    scale_linetype_manual(values=c("dotted", "solid"))
+    scale_linetype_manual(values=c("dotted", "solid")) + theme_classic()
   mod_p0
 }
 
@@ -76,25 +76,30 @@ nonlin_data <- read_csv("chap11-nonlin_data.csv")
 ```
 
 ```{r}
-### Figure 11-14. Non-linear relationships between variables ###
-viz_fun_11.14 <- function(dat){
-  p1 <- ggplot(dat, aes(Emails, Purchases)) + geom_point() + xlab("avg. monthly marketing emails") + ylab("avg. monthly purchases") 
-  p2 <- ggplot(dat, aes(Properties, Customers)) + geom_point() + xlab("number of properties (1000s)") + ylab("number of customers (1000s)")
+### Figure 11-5. Non-linear relationships between variables ###
+viz_fun_11.5 <- function(dat){
+  p1 <- ggplot(dat, aes(Emails, Purchases)) + geom_point() + 
+    xlab("avg. monthly marketing emails") + ylab("avg. monthly purchases") +
+    theme_classic()
+  p2 <- ggplot(dat, aes(Properties, Customers)) + geom_point() + 
+    xlab("number of properties (1000s)") + ylab("number of customers (1000s)") +
+    theme_classic()
   ggarrange(p1, p2, ncol=2, nrow=1)
 }
-viz_fun_11.14(nonlin_data)
+viz_fun_11.5(nonlin_data)
 ```
 
 ```{r}
-### Figure 11-15. Linear (dashed) and quadratic (solid) lines of best fit ###
-viz_fun_11.15 <- function(dat){
+### Figure 11-6. Linear (dashed) and quadratic (solid) lines of best fit ###
+viz_fun_11.6 <- function(dat){
   ggplot(dat, aes(Emails, Purchases)) + geom_point(shape=16) + 
     xlab("avg. monthly marketing emails") + 
     ylab("avg. monthly purchases") +
     geom_line(aes(y=pred_PP_lin, col='red'), lty="dashed", show.legend=FALSE) +
-    geom_line(aes(y=pred_PP_quad, col='blue'), show.legend=FALSE)
+    geom_line(aes(y=pred_PP_quad, col='blue'), show.legend=FALSE) +
+    theme_classic()
 }
-viz_fun_11.15(nonlin_data)
+viz_fun_11.6(nonlin_data)
 ```
 
 ```{r}
@@ -106,12 +111,44 @@ summary(lm(Purchases ~ Emails + I(Emails^2), data=nonlin_data))
 
 ## When to look for moderation?
 
+### Including moderation in the data analysis stage
+
 ```{r}
 #Binning age (i.e. converting it to categorical variable )
 hist_data <- hist_data %>% mutate(age_quart = ntile(age, 4))
 
 ```
 
+```{r}
+# Fig 11-12. Average effect of play area across customers without and with children
+viz_fun11.12 <- function(dat){
+  viz_dat <- dat %>%
+  dplyr::group_by(children) %>%
+  mutate(children = factor(children)) %>%
+  summarise(prop = n()/nrow(hist_data)) %>%
+  mutate(duration = 11.92)
+
+ggplot(viz_dat, aes(x=children, y=duration, fill=children, width=prop*1.98)) +
+  geom_bar(stat='identity',  show.legend=FALSE) + ylim(c(0,32)) + ylab("effect of play area (mn)") +
+  theme_classic()
+}
+viz_fun11.12(hist_data)
+```
+```{r}
+# Figure 11-13. Average effect coming entirely from customers with Children
+viz_fun11.13 <- function(dat){
+  viz_dat <- hist_data %>%
+    dplyr::group_by(children) %>%
+    mutate(children = factor(children)) %>%
+    summarise(prop = n()/nrow(hist_data)) %>%
+    mutate(duration = c(0.1, 11.92 * (1 + 0.613/0.387)))
+
+ggplot(viz_dat, aes(x=children, y=duration, fill=children, width=prop*1.98)) +
+  geom_bar(stat='identity',  show.legend=FALSE) + ylim(c(0,32)) + ylab("effect of play area (mn)") +
+  theme_classic()
+}
+viz_fun11.13(hist_data)
+```
 ## Multiple Moderators
 
 ```{r}
@@ -128,7 +165,7 @@ viz_fun_11.19 <- function(dat){
     ylim(c(0,65)) + geom_point() + geom_line(aes(lty=play_area)) + 
     labs(y="Average visit duration") + scale_linetype_manual(values=c("dotted", 
                                                                       "solid")) + 
-    facet_grid(.~age_grp)
+    facet_grid(.~age_grp) + theme_classic()
   mod_p1
 }
 viz_fun_11.19(hist_data)
@@ -204,7 +241,8 @@ mod_summ10k <- mod_boot_fun(hist_data, B = 1e3, N = 1e4)
 ### Figure 11-21. Distribution of bootstrapped values for interaction coefficient (1k samples of 10k rows) ###
 viz_fun_11.21 <- function(dat){
   ggplot(dat, aes(x=coeff_i)) + geom_histogram() + xlim(c(19.5,22.5)) +
-    geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc")
+    geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc") +
+    theme_classic()
 }
 viz_fun_11.21(mod_summ10k)
 ```
@@ -216,7 +254,7 @@ mod_summ200k <- mod_boot_fun(hist_data, B = 1e3, N = 2e5)
 ### Figure 11-22. Distribution of bootstrapped values for interaction coefficient (1k samples of 200k rows) ###
 viz_fun_11.22 <- function(dat){
   ggplot(dat, aes(x=coeff_i)) + geom_histogram() + xlim(c(19.5,22.5)) +
-    geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc")
+    geom_vline(xintercept = 20.985, col='red') + xlab("beta_pc") + theme_classic()
 }
 viz_fun_11.22(mod_summ200k)
 ```
@@ -236,7 +274,7 @@ viz_fun_11.23 <- function(dat){
     geom_point(aes(shape = play_area), alpha = 0.8) +
     scale_shape_manual(values=c(4, 16)) +
     geom_abline(intercept = 25, slope = -0.024, col = 'red', lty='dashed', size = 1.5) + 
-    geom_abline(intercept = 25+12.5568, slope = -0.024, col = 'blue')
+    geom_abline(intercept = 25+12.5568, slope = -0.024, col = 'blue') + theme_classic()
 }
 viz_fun_11.23(extract_dat)
 ```
@@ -248,7 +286,7 @@ viz_fun_11.24 <- function(dat){
     geom_point(aes(shape = play_area), alpha = 0.8) +
     scale_shape_manual(values=c(4, 16)) +
     geom_abline(intercept = 23.82, slope = 0, col = 'red', lty='dashed', size = 1.5) + 
-    geom_abline(intercept = 23.82+15.852, slope = -0.0659, col = 'blue')
+    geom_abline(intercept = 23.82+15.852, slope = -0.0659, col = 'blue') + theme_classic()
 }
 viz_fun_11.24(extract_dat)
 ```

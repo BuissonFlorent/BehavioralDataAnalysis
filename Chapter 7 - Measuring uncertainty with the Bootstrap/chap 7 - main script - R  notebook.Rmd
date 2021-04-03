@@ -3,7 +3,7 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 6: Measuring Uncertainty with the Bootstrap
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 7: Measuring Uncertainty with the Bootstrap
 
 # Intro to the Bootstrap: Polling Oneself Up
 
@@ -38,8 +38,12 @@ dat <- tibble(times = times,
 
 ```{r}
 # Figure 7-1. Experience and preparation time by baker
-ggplot(dat, aes(x=experience, y=times)) + 
-  geom_point() + xlab("Months of Experience") + ylab("Baking Times (in minutes)")
+viz_fun_7.1 <- function(){
+  ggplot(dat, aes(x=experience, y=times)) + 
+    geom_point() + xlab("Months of Experience") + 
+    ylab("Baking Times (in minutes)") + theme_classic()
+}
+viz_fun_7.1()
 ```
 
 
@@ -75,7 +79,10 @@ cat("LL_b =", LL_b, "\n", "UL_b =", UL_b)
 
 ```{r}
 # Figure 7-2. Distribution of the means of 2,000 samples
-ggplot(mean_summ, aes(x=means)) + geom_histogram()
+viz_fun_7.2 <- function(mean_summ){
+  ggplot(mean_summ, aes(x=means)) + geom_histogram() + theme_classic()
+}
+viz_fun_7.2(mean_summ)
 ```
 
 
@@ -83,13 +90,15 @@ ggplot(mean_summ, aes(x=means)) + geom_histogram()
 # Figure 7-3. Distribution of the means of 2,000 samples, 
 # with mean of the means (thick line), normal CI bounds (dotted lines) and 
 # bootstrap CI bounds (dashed lines).
-ggplot(mean_summ, aes(x=means)) + geom_histogram() + 
-  #geom_vline(xintercept = est, col ='red', size=2) +
-  geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
-  geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
-  geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', col='blue') +
-  geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', col='blue') +
-  geom_vline(xintercept = M_b,size = 2, col='blue')
+viz_fun_7.3 <- function(mean_summ){
+  ggplot(mean_summ, aes(x=means)) + geom_histogram() + 
+    geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
+    geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
+    geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', col='blue') +
+    geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', col='blue') +
+    geom_vline(xintercept = M_b,size = 2, col='blue') + theme_classic()
+}
+viz_fun_7.3(mean_summ)
 ```
 
 
@@ -114,9 +123,14 @@ promise_summ <- promise_fun(dat, B = 2000)
 ```{r}
 # Figure 7-4. Distribution of the proportion of each sample with a preparation 
 # time above 180mn.
-ggplot(promise_summ, aes(x=above180)) + geom_histogram() +
-  scale_x_continuous(breaks=seq(from=0,to=0.6,by=0.1)) +
-  xlab("proportion of sample with preparation time above 180mn")
+viz_fun_7.4 <- function(promise_summ){
+  ggplot(promise_summ, aes(x=above180)) + geom_histogram() +
+    scale_x_continuous(breaks=seq(from=0,to=0.6,by=0.1)) +
+    xlab("proportion of sample with preparation time above 180mn") +
+    theme_classic()
+}
+viz_fun_7.4(promise_summ)
+
 
 LL_b <- as.numeric(quantile(promise_summ$above180, c(0.025)))
 UL_b <- as.numeric(quantile(promise_summ$above180, c(0.975)))
@@ -167,17 +181,21 @@ UL_b <- as.numeric(quantile(reg_summ$coeff, c(0.975)))
 
 
 ```{r}
-# Figure 7-5. Distribution of the regression coefficients of preparation time 
+# Figure 7-6. Distribution of the regression coefficients of preparation time 
 # on experience, with their mean (thick line), bootstrap CI bounds (thick 
 # dashed lines) and normal CI bounds (thin dotted lines) 
 # (B=4,000 bootstrap samples)
-ggplot(reg_summ, aes(x=coeff)) + geom_histogram(bins=500) + xlim(c(-45,5)) +
-  geom_vline(xintercept = M_b, col ='blue', size=2) +
-  geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
-  geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
-  geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
-  geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
-  xlab("regression coefficient of preparation time on experience")
+viz_fun_7.6 <- function(reg_summ){
+  ggplot(reg_summ, aes(x=coeff)) + geom_histogram(bins=500) + xlim(c(-45,5)) +
+    geom_vline(xintercept = M_b, col ='blue', size=2) +
+    geom_vline(xintercept = LL, size = 1.25, lty='dotted') +
+    geom_vline(xintercept = UL, size = 1.25, lty='dotted') +
+    geom_vline(xintercept = LL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
+    geom_vline(xintercept = UL_b, size = 1.25, lty='dashed', size = 1.5, col='blue') +
+    xlab("regression coefficient of preparation time on experience") +
+    theme_classic()
+}
+viz_fun_7.6(reg_summ)
 ```
 
 ```{r}
@@ -195,12 +213,16 @@ CD[CD > 1]
 
 
 ```{r}
-#Figure 7-6 Density plot (left) and QQ-plot (right) of regression residuals. 
-res_dat <- tibble(res = resid(mod))
-p1 <- ggplot(res_dat, aes(res)) + geom_density() + xlab("regression residuals")
-p2 <- ggplot(res_dat, aes(sample=res)) + geom_qq() + geom_qq_line() + 
-  coord_flip()
-ggarrange(p1, p2, ncol=2, nrow=1)
+#Figure 7-8 Density plot (left) and QQ-plot (right) of regression residuals. 
+viz_fun_7.8 <- function(){
+  res_dat <- tibble(res = resid(mod))
+  p1 <- ggplot(res_dat, aes(res)) + geom_density() + 
+    xlab("regression residuals") + theme_classic()
+  p2 <- ggplot(res_dat, aes(sample=res)) + geom_qq() + geom_qq_line() + 
+    coord_flip() + theme_classic()
+  ggarrange(p1, p2, ncol=2, nrow=1)
+}
+viz_fun_7.8()
 ```
 
 ```{r}
@@ -214,17 +236,21 @@ UL_b2 <- as.numeric(quantile(reg_summ2$coeff, c(0.975)))
 
 
 ```{r}
-# Figure 7-7. Distribution of the regression coefficients of preparation time 
+# Figure 7-9. Distribution of the regression coefficients of preparation time 
 # on experience, with their mean (thick line), bootstrap CI bounds (thick 
 # dashed lines) and normal CI bounds (thin dotted lines) 
 # (B=200 bootstrap samples)
-ggplot(reg_summ2, aes(x=coeff)) + geom_histogram(bins=50) + xlim(c(-45,5)) +
-  geom_vline(xintercept = M_b, col ='blue', size=2) +
-  geom_vline(xintercept = LL, lty='dotted') +
-  geom_vline(xintercept = UL, lty='dotted') +
-  geom_vline(xintercept = LL_b, lty='dashed', size = 1.5, col='blue') +
-  geom_vline(xintercept = UL_b, lty='dashed', size = 1.5, col='blue') +
-  xlab("regression coefficient of preparation time on experience")
+viz_fun_7.9 <- function(reg_summ2){
+  ggplot(reg_summ2, aes(x=coeff)) + geom_histogram(bins=50) + xlim(c(-45,5)) +
+    geom_vline(xintercept = M_b, col ='blue', size=2) +
+    geom_vline(xintercept = LL, lty='dotted', size=1) +
+    geom_vline(xintercept = UL, lty='dotted', size=1) +
+    geom_vline(xintercept = LL_b, lty='dashed', size = 1.5, col='blue') +
+    geom_vline(xintercept = UL_b, lty='dashed', size = 1.5, col='blue') +
+    xlab("regression coefficient of preparation time on experience") +
+    theme_classic()
+}
+viz_fun_7.9(reg_summ2)
 ```
 
 # Optimizing the Bootstrap in R and Python
