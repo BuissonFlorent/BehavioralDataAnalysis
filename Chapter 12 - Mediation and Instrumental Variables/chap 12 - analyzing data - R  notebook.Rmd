@@ -89,8 +89,8 @@ boot_CI_fun(hist_data, percentage_mediated_fun)
 # Instrumental variables
 
 ```{r}
-#Loading the experimental data from chapter 9
-exp_data <- read_csv("chap9-experimental_data.csv")
+#Loading the experimental data from chapter 10
+exp_data <- read_csv("chap10-experimental_data.csv")
 
 #Reformating the data
 exp_data <- exp_data %>%
@@ -102,13 +102,13 @@ exp_data <- exp_data %>%
 
 ```{r}
 # Reduced regression, coeff = 1.6
-red_mod <- lm(M6Spend~group+age, data=exp_data)
+red_mod <- lm(M6Spend~group+age+reason, data=exp_data)
 summary(red_mod)
 ```
 
 ```{r}
 # First stage regression, coeff = 0.5
-S1_mod <- lm(call_CSAT~group+age, data=exp_data)
+S1_mod <- lm(call_CSAT~group+age+reason, data=exp_data)
 summary(S1_mod)
 ```
 
