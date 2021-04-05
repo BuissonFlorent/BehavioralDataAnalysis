@@ -61,22 +61,19 @@ viz_fun_1.3()
 ```{r}
 #Running linear regressions 
 #Biased model (coeff should be 1,000)
-model1 <- lm(icecream_sales ~ temps, data=stand_dat)
-summary(model1)
+summary(lm(icecream_sales ~ temps, data=stand_dat))
 ```
 
 ```{r}
 #correct model for icecream (coeffs should be 1,000 and 20,000)
-model2 <- lm(icecream_sales ~ temps + summer_months, data=stand_dat)
-summary(model2)
+summary(lm(icecream_sales ~ temps + summer_months, data=stand_dat))
 ```
 
 
 ```{r}
 #Model biased by extra controlling
-model3 <- lm(icecream_sales ~ iced_coffee_sales + temps + summer_months, 
-             data = stand_dat)
-summary(model3)
+summary(lm(icecream_sales ~ iced_coffee_sales + temps + summer_months, 
+             data = stand_dat))
 ```
 
 
