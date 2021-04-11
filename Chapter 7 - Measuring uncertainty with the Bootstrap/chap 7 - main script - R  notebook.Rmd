@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Chapter 7: Measuring Uncertainty With the Bootstrap"
 output: html_notebook
 ---
 
@@ -56,7 +56,8 @@ se <- lin_mod_summ$coefficients[1,2]
 #Building normal confidence interval
 LL <- est-1.96*se
 UL <- est+1.96*se
-cat("LL =", LL, "\n", "UL =", UL)
+cat("LL =", LL, "\n")
+cat("UL =", UL)
 ```
 
 ```{r}
@@ -74,7 +75,8 @@ mean_summ <- tibble(means = unlist(mean_lst))
 LL_b <- as.numeric(quantile(mean_summ$means, c(0.025)))
 UL_b <- as.numeric(quantile(mean_summ$means, c(0.975)))
 M_b <- mean(mean_summ$means)
-cat("LL_b =", LL_b, "\n", "UL_b =", UL_b)
+cat("LL_b =", LL_b, "\n")
+cat("UL_b =", UL_b)
 ```
 
 ```{r}
@@ -131,9 +133,10 @@ viz_fun_7.4 <- function(promise_summ){
 }
 viz_fun_7.4(promise_summ)
 
-
 LL_b <- as.numeric(quantile(promise_summ$above180, c(0.025)))
 UL_b <- as.numeric(quantile(promise_summ$above180, c(0.975)))
+cat("LL_b =", LL_b, "\n")
+cat("UL_b =", UL_b)
 ```
 
 ```{r}
@@ -156,6 +159,8 @@ se <- mod_summ$coefficients[2,2]
 
 LL <- est-1.96*se
 UL <- est+1.96*se
+cat("LL =", LL, "\n")
+cat("UL =", UL)
 ```
 
 ```{r}
@@ -177,6 +182,8 @@ reg_summ <- reg_fun(dat, B=4000)
 M_b <- mean(reg_summ$coeff)
 LL_b <- as.numeric(quantile(reg_summ$coeff, c(0.025)))
 UL_b <- as.numeric(quantile(reg_summ$coeff, c(0.975)))
+cat("LL_b =", LL_b, "\n")
+cat("UL_b =", UL_b)
 ```
 
 
