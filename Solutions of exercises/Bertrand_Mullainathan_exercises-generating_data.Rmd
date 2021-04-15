@@ -1,0 +1,44 @@
+---
+title: "Generating the data for the Bertrand & Mullainathan exercises"
+output: html_notebook
+---
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(haven) #For function read_dta
+library(rstudioapi)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+```
+
+# Loading the data from the .dta file
+
+```{r}
+data <- read_dta(file = "2004_Bertrand_Mullainathan.dta")
+```
+
+# Selecting and reformating variables
+
+```{r}
+#Reframing variables as factor
+output_dat <- data %>%
+  mutate(wanted = case_when(
+    manager == 1 ~ 'manager',
+    supervisor == 1 ~ 'supervisor',
+    secretary == 1 ~ 'secretary',
+    offsupport == 1 ~ 'offsupport',
+    salesrep == 1 ~ 'salesrep',
+    retailsales == 1 ~ 'retailsales')) %>%
+  mutate(wanted = factor(wanted)) %>%
+  select(call, education, yearsexp, race, sex, college, eoe, wanted)
+summary(output_dat)
+```
+
+# Saving the data in a file
+```{r}
+write_csv(output_dat, "Bertrand_Mullainathan.csv")
+```

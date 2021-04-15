@@ -1,0 +1,77 @@
+---
+title: "Generating the data for the AirCnC M&M exercises"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(psych)
+library(rstudioapi) #To load data from local folder
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+set.seed(1)
+options(scipen=10)
+```
+
+# Creating the data
+
+```{r}
+N <- 1e4
+
+#Data at the zip code level
+set.seed(1)
+Nzips <- 40
+zips <- 1:Nzips
+zip_income <- rlnorm(Nzips) %>% sort()
+income_lst <- sapply(zips, function(x){1e4*rlnorm(N/Nzips, meanlog=zip_income[x])}) %>%
+  c()
+zip_lst <- rep(zips, each = N/Nzips)
+```
+
+```{r}
+#Complete data at the individual level
+set.seed(1)
+dat <- tibble(
+  period = rep(0:1, N/2),
+  zip = zip_lst,
+  income = income_lst,
+  ad = ifelse(runif(N)<= 0.2 & period == 1, 1, 0),
+  val_mm = (income + 5e3*ad-5e5)/1e5,
+  prob_mm = logistic(val_mm),
+  mm = ifelse(runif(N)<= prob_mm, 1, 0),
+  val_bkd = (income - 1e4*mm - 1e5)/1e5,
+  prob_bkd = logistic(val_bkd),
+  bkd = ifelse(runif(N)<= prob_bkd, 1, 0)
+)
+summary(dat)
+
+#Removing scaffolding variables
+remove(zip_income, zip_lst, zips)
+dat <- dat %>%
+  select(-val_mm, -prob_mm, -val_bkd, -prob_bkd)
+```
+
+
+```{r}
+# Generating missingness
+set.seed(1)
+dat <- dat %>%
+  mutate(msg_inc_val = -4 + 5*(log(income)-log(min(income)))/(log(max(income))-log(min(income)))) %>%
+  mutate(msg_inc_prob = logistic(msg_inc_val)) %>%
+  mutate(income = ifelse (runif(N) <= msg_inc_prob, NA, income))
+summary(dat)
+ggplot(dat, aes(income, msg_inc_prob)) + geom_point()
+```
+# Filtering the variables we want to keep
+```{r}
+output_dat <- dat %>%
+  select(period, zip, income, ad, mm, bkd) %>%
+  mutate(income = round(income, 0))
+```
+# Saving the data in a file
+```{r}
+write_csv(output_dat, "AirCnC_MnM_exercises_data.csv")
+```

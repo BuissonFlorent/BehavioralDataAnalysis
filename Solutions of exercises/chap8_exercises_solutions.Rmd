@@ -1,0 +1,84 @@
+---
+title: "Solutions for chapter 8 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(rstudioapi)
+library(boot)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+```
+
+# Reading the data
+
+```{r}
+data <- read_csv("Bertrand_Mullainathan_exercises_data.csv")
+```
+
+```{r}
+#Reframing variables as factor
+data <- data %>%
+  mutate(race = factor(race, levels = c('w','b'))) %>%
+  mutate(sex = factor(sex, levels = c('m','f'))) %>%
+  mutate(college = factor(college, levels = c(0,1))) %>%
+  mutate(eoe = factor(eoe, levels = c(0,1))) %>%
+  mutate(wanted = factor(wanted))
+summary(data)
+```
+
+```{r}
+#Logistic regression
+model <- glm(call~education+yearsexp+race+sex+eoe+wanted, family = binomial(link = 'logit'), data = data)
+summary(model)
+```
+1. Build a 90%-CI for the regression coefficient representing the effect of race on the probability of getting a call back.
+
+The 90%-CI is approx. [-0.662; -0.264].
+
+```{r}
+#Metric function
+log_reg_fun <- function(dat){
+  #Running logistic regression
+  mod <- glm(call~education+yearsexp+race+sex+eoe+wanted, dat, family = 'binomial')
+  summ <- summary(mod)
+  metric <- summ$coefficients['raceb', 'Estimate']
+  return(metric)
+}
+
+#Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  #Setting the number of bootstrap samples
+  boot_metric_fun <- function(dat, J){
+    boot_dat <- dat[J,]
+    return(metric_fun(boot_dat))
+  }
+  boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
+  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
+  CI <- confint$percent[c(4,5)]
+  return(CI)
+}
+set.seed(1)
+boot_CI <- boot_CI_fun(dat=data, metric_fun=log_reg_fun)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

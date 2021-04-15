@@ -1,0 +1,108 @@
+---
+title: "Solutions for chapter 6 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+library(tidyverse)
+library(psych)
+library(rstudioapi) #To load data from local folder
+library(mice)
+library(VIM)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+set.seed(1)
+options(scipen=10)
+
+dat <- read_csv("AirCnC_MnM_exercises_data.csv") %>%
+  mutate(zip = factor(zip)) %>%
+  mutate(bkd_mm = bkd * mm)
+```
+
+# 1. Diagnosing the missingness
+
+1.a. How many records are missing for income?
+
+1511. 
+```{r}
+summary(dat)
+```
+
+1. b. What is the correlation between the missingness of income and booking an M&M property?
+
+0.22.
+```{r}
+with(dat, cor(is.na(income), bkd_mm))
+```
+1.c. Run a logistic regression of bkd_mm on income. How much does the coefficient change if you replace the missing values for income by the minimum income? By the maximum income? 
+
+The basic coefficient is approx. 112.4*1e-7.
+The coefficient after replacing by the minimum income is approx. 58.9*1e-7.
+The coefficient after replacing by the maximum income is approx. 2.2*1e-7.
+
+```{r}
+
+# Basic regression with missing values
+coeff <- summary(glm(bkd_mm~income, family = 'binomial', data=dat))$coefficients[2,1]
+coeff*1e7
+
+# Substituting the minimum or maximum income when missing
+min_dat <- dat %>%
+  mutate(income = ifelse(!is.na(income), income, min(income, na.rm = TRUE)))
+max_dat <- dat %>%
+  mutate(income = ifelse(!is.na(income), income, max(income, na.rm = TRUE)))
+
+# Calculating the corresponding coefficients
+coeff_min <- summary(glm(bkd_mm~income, family = 'binomial', data=min_dat))$coefficients[2,1]
+coeff_max <- summary(glm(bkd_mm~income, family = 'binomial', data=max_dat))$coefficients[2,1]
+
+coeff_min*1e7
+coeff_max*1e7
+
+```
+
+1.d. Plot a scatterplot of the average income in a zip code vs. the percentage of missing values in that zip code. What do you conclude about the missingness of income? (is it likely to be MCAR? MAR? MNAR?) 
+
+There appears to be a strong relationship between the two variables. This makes it highly unlikely that income is MCAR. It may be MAR on zip code, or zip code is correlated with income and income is MNAR. We can't distinguish between these two hypotheses based on the data available, but the latter one (MNAR) is the most likely from a behavioral standpoint. 
+
+```{r}
+msg_dat_summ <- dat %>%
+  group_by(zip) %>%
+  summarise(zip_cnt = n(),
+            msg_prop = sum(is.na(income))/zip_cnt,
+            avg_income = mean(income, na.rm= TRUE))
+ggplot(msg_dat_summ, aes(x=avg_income, y=msg_prop)) + geom_point()
+```
+
+# 2. Correcting for the missingness
+
+2. a. Run a logistic regression of bkd_mm on income, imputing the missing values with MICE. What is the coefficient for income?
+
+The coefficient for imputing the missing values with MICE is approx. 4.1*1e-7, pretty close to the coefficient obtained after replacing the missing values by the maximum income. 
+
+```{r}
+MI_data <- mice(dat, print = FALSE)
+MI_summ <- MI_data  %>%
+  with(glm(bkd_mm~income)) %>%
+    pool() %>%
+    summary()
+print(MI_summ)
+
+coeff_mice <- MI_summ$estimate[2]
+coeff_mice*1e7
+```
+
+
+
+
+
+
+
+
+
+

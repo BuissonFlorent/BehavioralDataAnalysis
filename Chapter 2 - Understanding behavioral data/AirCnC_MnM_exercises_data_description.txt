@@ -1,6 +1,0 @@
-The file AirCnC_MnM_exercises_data.csv contains the following variables:
-- period: numeric variable, taking the values 0 (preliminary period before the ad was run) and 1 (period when the ad was run)
-- income: numeric variable, indicating the income of the customer
-- ad: binary variable, 0 for customers who haven't been served the ad, 1 for customers who have been served the ad
-- mm: "considered a Mansion & Manor property", binary variable, 0 for customers who didn't consider an M&M property, 1 for customers who considered an M&M property
-- bkd: "booked property", binary variable, 0 for customers who didn't book the property they were considering, 1 for customers who booked the property they were considering

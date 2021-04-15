@@ -1,0 +1,87 @@
+---
+title: "Solutions for chapter 2 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+library(tidyverse)
+library(psych)
+library(rstudioapi) #To load data from local folder
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+set.seed(1)
+options(scipen=10)
+
+dat <- read_csv("AirCnC_MnM_exercises_data.csv")
+```
+# 0. The problem as seen by the PM
+This preliminary section shows the calculations that the PM ran, for reference.
+```{r}
+# The booking rate is lower for customers who have seen the ad
+dat %>% group_by(ad) %>% summarise(
+  bkg_rate = mean(bkd)
+)
+```
+0.b. What is the booking rate for customers who have seen the ad, restricting to customers considering an M&M property? Customers who haven’t seen the ad, with the same restriction?
+```{r}
+# This remains true even when restricting to customers considering an M&M property
+dat %>% filter(mm==1) %>% group_by(ad) %>% summarise(
+  bkg_rate = mean(bkd)
+)
+```
+
+# 1. Understanding the behaviors
+
+1.a. What are the behavioral categories for the variables in the data (Income, Ad, MM, Bkd)?
+
+Income is a personal characteristic.
+Ad is a business behavior.
+MM is a customer behavior. 
+Bkd is a customer behavior.
+
+1.b. What is (are) the goal(s) of the ad?
+
+The goals of the ad are 
+- to increase the percentage of customers who consider an M&M property
+- to increase the percentage of customers who book an M&M property
+
+```{r}
+# The ad increases the probability that a customer will consider an M&M property
+mod_mm <- glm(mm~ad, family = 'binomial', data=dat)
+summary(mod_mm)
+```
+
+```{r}
+#The ad increases the probability that a customer will book an M&M property
+dat <- dat %>%
+  mutate(bkd_mm = bkd * mm) # Equal to 1 if and only if a customer books an M&M property
+mod_bkd_mm <- glm(bkd_mm~ad, family = 'binomial', data=dat)
+summary(mod_bkd_mm)
+```
+# 2. Resolving the mystery 
+2.a. How does income affect these behaviors?
+```{r}
+# Income increases the probability that a customer will consider an M&M property
+mod_mm <- glm(mm~income+ad, family = 'binomial', data=dat)
+summary(mod_mm)
+```
+```{r}
+# Income increases the probability that a customer will book an M&M property
+mod_bkd_mm <- glm(bkd_mm~income+ad, family = 'binomial', data=dat)
+summary(mod_bkd_mm)
+```
+2.b. What is the average income of customers considering an M&M property after seeing the ad? Without seeing the ad? 
+```{r}
+# Customers considering an M&M property after seeing the ad have a lower income than customers considering an M&M property without having seen the ad
+dat %>% group_by(ad, mm) %>% summarise(
+  avg_income = mean(income)
+)
+```
+2.c. Can you now explain to the PM what happened?
+
+The ad was effective at driving more customers to consider an M&M property across the board (i.e. irrespective of income). However, because there are more customers with a lower income than with a higher income, this added proportionately more lower-income customers to the pool of customers considering an M&M property. These lower-income customers have a lower likelihood to book a property, so the average booking rate across customers considering an M&M property decreased. In other words, the mix of customers considering an M&M property changed, but the individual probability that a customer would consider and book an M&M property increased. This ad is a resounding success!

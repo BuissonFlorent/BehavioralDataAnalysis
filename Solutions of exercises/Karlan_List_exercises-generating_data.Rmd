@@ -1,0 +1,41 @@
+---
+title: "Generating the data for the Karlan & List exercises"
+output: html_notebook
+---
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(haven) #For function read_dta
+library(rstudioapi)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+```
+
+# Loading the data from the .dta file
+
+```{r}
+data <- read_dta(file = "2007_Karlan_List.dta")
+```
+
+# Selecting and reformating variables
+
+```{r}
+#Reframing variables as factor
+output_dat <- data %>%
+   mutate(group = case_when(
+     ratio == 1 ~ 'treat1',
+     ratio == 2 ~ 'treat2',
+     ratio == 3 ~ 'treat3',
+     control == 1 ~ 'ctrl')) %>%
+  select(gave, amount, group, freq, gender, state_pol, county_pol, dormant)
+summary(output_dat)
+```
+
+# Saving the data in a file
+```{r}
+write_csv(output_dat, "Bertrand_Mullainathan.csv")
+```

@@ -1,0 +1,9 @@
+The file Karlan_List.csv contains the following variables:
+- gave: binary target variable, 1 if the donor gave after receiving the letter, 0 otherwise
+- amount: numeric target variable, amount given by the donor after receiving the letter
+- group: categorical variable for experimental group, “control”, treat1”, “treat2”, or “treat3”
+- freq: numeric variable, frequency of past donations 
+- gender: categorical variable, donor gender, “male”, “female” or “couple”
+- state_pol: categorical variable, political leaning of the donor’s state (“red” or “blue”)
+- county_pol: categorical variable, political leaning of the donor’s county (“red” or “blue”)
+- dormant: binary variable, 1 if the donor previously gave this year, 0 otherwise

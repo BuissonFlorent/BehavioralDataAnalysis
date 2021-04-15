@@ -1,0 +1,8 @@
+The file Bertrand_Mullainathan.csv contains the following variables:
+- call: binary target variable, 0 when the hiring firm did not call back the candidate, 1 when the hiring firm called back the candidate
+- education: numeric variable, number of years of education
+- yearsexp: numeric variable, number of years of experience
+- race: categorical variable, 'b' for black-sounding names, 'w' for white-sounding names
+- sex: categorical variable, 'f' for female, 'm' for male
+- college: binary variable, 0 when the applicant didn't go to college, 1 when the applicant went to college
+- eoe: binary variable, 0 when the hiring firm is not an Equal Opportunity Employer, 1 when the hiring firm is an Equal Opportunity Employer
