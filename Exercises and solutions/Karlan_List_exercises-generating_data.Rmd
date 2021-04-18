@@ -31,11 +31,21 @@ output_dat <- data %>%
      ratio == 2 ~ 'treat2',
      ratio == 3 ~ 'treat3',
      control == 1 ~ 'ctrl')) %>%
+  mutate(gender = case_when(
+    female == 1 ~ 'female',
+    couple == 1 ~ 'couple',
+    TRUE ~ 'male')) %>%
+  mutate(state_pol = case_when(
+    red0 == 1 ~ 'red',
+    blue0 == 1 ~ 'blue')) %>%
+  mutate(county_pol = case_when(
+    redcty == 1 ~ 'red',
+    bluecty == 1 ~ 'blue')) %>%
   select(gave, amount, group, freq, gender, state_pol, county_pol, dormant)
 summary(output_dat)
 ```
 
 # Saving the data in a file
 ```{r}
-write_csv(output_dat, "Bertrand_Mullainathan.csv")
+write_csv(output_dat, "Karlan_List_exercises_data.csv")
 ```

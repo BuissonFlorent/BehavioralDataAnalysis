@@ -1,0 +1,130 @@
+---
+title: "Solutions for chapter 9 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(rstudioapi)
+library(boot)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+```
+
+# Reading the data
+
+```{r}
+data <- read_csv("Karlan_List_exercises_data.csv")
+```
+
+```{r}
+#Reframing variables as factor
+data <- data %>%
+  mutate(group = factor(group, levels=c('ctrl', 'treat1', 'treat2', 'treat3'))) %>%
+  mutate(gender = factor(gender, levels=c('male', 'female', 'couple'))) %>%
+  mutate(state_pol = factor(state_pol, levels=c('red','blue'))) %>%
+  mutate(county_pol = factor(county_pol, levels=c('red', 'blue')))
+  # Filter on giving
+  #filter(gave == 1) %>% select(-gave)
+summary(data)
+```
+
+```{r}
+# EDA
+ggplot(data, aes(amount)) + geom_histogram()
+summary(lm(amount~group+gender+state_pol+county_pol+freq, data))
+```
+1. Build a 90%-CI for the regression coefficient representing the effect of race on the probability of getting a call back.
+
+The 90%-CI for the 1:1 match is approx. [-0.0784; 0.3203].
+The 90%-CI for the 2:1 match is approx. [-0.0155; 0.4176].
+The 90%-CI for the 3:1 match is approx. [-0.0112; 0.308].
+
+```{r}
+#Metric functions
+lin_reg_fun1 <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+freq+state_pol+county_pol+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['grouptreat1', 'Estimate']
+  return(metric)
+}
+
+lin_reg_fun2 <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+freq+state_pol+county_pol+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['grouptreat2', 'Estimate']
+  return(metric)
+}
+
+lin_reg_fun3 <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+freq+state_pol+county_pol+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['grouptreat3', 'Estimate']
+  return(metric)
+}
+
+#Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  #Setting the number of bootstrap samples
+  boot_metric_fun <- function(dat, J){
+    boot_dat <- dat[J,]
+    return(metric_fun(boot_dat))
+  }
+  boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
+  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
+  CI <- confint$percent[c(4,5)]
+  return(CI)
+}
+set.seed(1)
+boot_CI1 <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun1, conf.level = 0.9, B = 1e3)
+boot_CI2 <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun2, conf.level = 0.9, B = 1e3)
+boot_CI3 <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun3, conf.level = 0.9, B = 1e3)
+```
+
+
+
+
+```{r}
+# Metric function for difference
+diff_reg_fun <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+freq+state_pol+county_pol+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['grouptreat2', 'Estimate'] - summ$coefficients['grouptreat3', 'Estimate']
+  return(metric)
+}
+
+boot_diff_CI <- boot_CI_fun(dat=data, metric_fun=diff_reg_fun, conf.level = 0.8, B = 1000)
+```
+
+# Measuring mediation effect of freq
+
+```{r}
+summary(lm(freq~gender+state_pol+county_pol, data))
+
+
+summary(lm(amount~group+gender+state_pol+county_pol+freq, data))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+

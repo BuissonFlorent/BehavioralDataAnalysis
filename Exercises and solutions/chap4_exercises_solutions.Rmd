@@ -1,0 +1,52 @@
+---
+title: "Solutions for chapter 4 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(rstudioapi)
+library(boot)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+```
+
+# Reading the data
+
+```{r}
+data <- read_csv("Karlan_List_exercises_data.csv")
+```
+
+```{r}
+#Reframing variables as factor
+data <- data %>%
+  mutate(group = factor(group, levels=c('ctrl', 'treat1', 'treat2', 'treat3'))) %>%
+  mutate(gender = factor(gender, levels=c('male', 'female', 'couple'))) %>%
+  mutate(state_pol = factor(state_pol, levels=c('red','blue'))) %>%
+  mutate(county_pol = factor(county_pol, levels=c('red', 'blue')))
+summary(data)
+```
+
+```{r}
+mod <- glm(dormant~gender+state_pol+county_pol, data, family = 'binomial')
+#summary(mod)
+
+summary(lm(freq~gender+state_pol*county_pol, data))
+
+```
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,145 @@
+---
+title: "Solutions for chapter 12 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+options(scipen=10)
+
+library(tidyverse)
+library(rstudioapi)
+library(boot)
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+```
+
+# Reading the data
+
+```{r}
+data <- read_csv("Karlan_List_exercises_data.csv")
+```
+
+```{r}
+#Reframing variables as factor
+data <- data %>%
+  mutate(group = factor(group, levels=c('ctrl', 'treat1', 'treat2', 'treat3'))) %>%
+  mutate(gender = factor(gender, levels=c('male', 'female', 'couple'))) %>%
+  mutate(state_pol = factor(state_pol, levels=c('red','blue'))) %>%
+  mutate(county_pol = factor(county_pol, levels=c('red', 'blue')))
+summary(data)
+```
+
+# Setting up Bootstrap CI function
+
+```{r}
+#Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  #Setting the number of bootstrap samples
+  boot_metric_fun <- function(dat, J){
+    boot_dat <- dat[J,]
+    return(metric_fun(boot_dat))
+  }
+  boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
+  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
+  CI <- confint$percent[c(4,5)]
+  return(CI)
+}
+```
+
+1. Calculate the total effect of gender == female on the amount given by running a regression including other covariates but excluding the tentative mediator.
+
+The 90%-CI for the total effect of female donors is approx. [-0.25; 0.02].
+
+```{r}
+# Function definitions
+
+#Metric functions
+lin_reg_fun <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+state_pol+county_pol, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['genderfemale', 'Estimate']
+  return(metric)
+}
+
+set.seed(1)
+boot_CI_f_tot <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun, conf.level = 0.9, B = 1e3)
+```
+
+2. Calculate the direct effect of gender == female on the amount given by running a regression including other covariates and the tentative mediator.
+
+The 90%-CI for the direct effect of female donors is approx. [-0.2869;-0.0259].
+
+```{r}
+#Metric functions
+lin_reg_fun <- function(dat){
+  #Running logistic regression
+  mod <- lm(amount~group+gender+state_pol+county_pol+freq+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['genderfemale', 'Estimate']
+  return(metric)
+}
+
+set.seed(1)
+boot_CI_f_dir <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun, conf.level = 0.9, B = 1e3)
+```
+
+3.	Calculate the indirect (mediated) effect of gender == female on the amount given by running the regression of the mediator on gender == female and a regression of the final effect on the mediator, the original cause of interest and relevant covariates, then multiplying the relevant coefficients (warning: do this multiplication inside the Bootstrap loop, not outside of it) 
+
+The 90%-CI for the mediated effect of female donors is approx. [0.0207;0.0465].
+
+```{r}
+lin_reg_fun_med <- function(dat){
+  mod1 <- lm(freq~gender+state_pol+county_pol, dat)
+  summ1 <- summary(mod1)
+  metric1 <- summ1$coefficients['genderfemale', 'Estimate']
+  
+  mod2 <- lm(amount~group+gender+state_pol+county_pol+freq+dormant, dat)
+  summ2 <- summary(mod2)
+  metric2 <- summ2$coefficients['freq', 'Estimate']
+  
+  return(metric1*metric2)
+}
+
+set.seed(1)
+boot_CI_f_med <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun_med, conf.level = 0.9, B = 1e3)
+```
+
+4.	Calculate the percentage mediated by running the same regressions as in 3 but also the regression for the total effect and determining the percentage mediated in each loop. What is your conclusion?
+
+The 90%-CI for the percentage mediated effect of female donors is approx. [-164%; 85%], with a central value of -30%. The direct and indirect effect are going in opposite directions and mostly cancel each other (a complete cancellation would be a percentage mediated of -100%)
+
+```{r}
+lin_reg_fun_perc_med <- function(dat){
+  mod1 <- lm(freq~gender+state_pol+county_pol, dat)
+  summ1 <- summary(mod1)
+  metric1 <- summ1$coefficients['genderfemale', 'Estimate']
+  
+  mod2 <- lm(amount~group+gender+state_pol+county_pol+freq+dormant, dat)
+  summ2 <- summary(mod2)
+  metric2 <- summ2$coefficients['freq', 'Estimate']
+  
+  mod <- lm(amount~group+gender+state_pol+county_pol, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['genderfemale', 'Estimate']
+  
+  return(metric1*metric2/metric)
+}
+
+set.seed(1)
+mean_perc_med <- lin_reg_fun_perc_med(data)
+boot_CI_f_perc_med <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun_perc_med, conf.level = 0.9, B = 1e3)
+```
+
+
+
+
+
+
+
+
