@@ -138,9 +138,9 @@ block_wrapper_fun <- function(dat){
   assgt <- as.matrix(assgt) %>% apply(2, function(x) as.integer(x))
   return(assgt)
 }
+set.seed(1)
 stratified_pairs <- block_wrapper_fun(hist_data)
-stratified_pairs
-
+print(stratified_pairs)
 ```
 
 ## Power analysis
