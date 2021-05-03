@@ -28,7 +28,7 @@ data <- read_csv("Bertrand_Mullainathan_exercises_data.csv")
 #Reframing variables as factor
 data <- data %>%
   mutate(race = factor(race, levels = c('w','b'))) %>%
-  mutate(sex = factor(sex, levels = c('m','f'))) %>%
+  mutate(gender = factor(gender, levels = c('m','f'))) %>%
   mutate(college = factor(college, levels = c(0,1))) %>%
   mutate(eoe = factor(eoe, levels = c(0,1))) %>%
   mutate(wanted = factor(wanted))
@@ -37,7 +37,7 @@ summary(data)
 
 ```{r}
 #Logistic regression
-model <- glm(call~education+yearsexp+race+sex+eoe+wanted, family = binomial(link = 'logit'), data = data)
+model <- glm(call~education+yearsexp+race+gender+eoe+wanted, family = binomial(link = 'logit'), data = data)
 summary(model)
 ```
 1. Build a 90%-CI for the regression coefficient representing the effect of race on the probability of getting a call back.
@@ -48,7 +48,7 @@ The 90%-CI is approx. [-0.662; -0.264].
 #Metric function
 log_reg_fun <- function(dat){
   #Running logistic regression
-  mod <- glm(call~education+yearsexp+race+sex+eoe+wanted, dat, family = 'binomial')
+  mod <- glm(call~education+yearsexp+race+gender+eoe+wanted, dat, family = 'binomial')
   summ <- summary(mod)
   metric <- summ$coefficients['raceb', 'Estimate']
   return(metric)

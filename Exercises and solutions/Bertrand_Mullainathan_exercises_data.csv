@@ -1,4 +1,4 @@
-call,education,yearsexp,race,sex,college,eoe,wanted
+call,education,yearsexp,race,gender,college,eoe,wanted
 0,4,6,w,f,1,1,supervisor
 0,3,6,w,f,0,1,supervisor
 0,4,6,b,f,1,1,supervisor

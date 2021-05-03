@@ -70,6 +70,7 @@ summary(mod_bkd_mm)
 mod_mm <- glm(mm~income+ad, family = 'binomial', data=dat)
 summary(mod_mm)
 ```
+
 ```{r}
 # Income increases the probability that a customer will book an M&M property
 mod_bkd_mm <- glm(bkd_mm~income+ad, family = 'binomial', data=dat)
