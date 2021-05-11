@@ -1,0 +1,111 @@
+---
+title: "Solutions for chapter 10 exercises"
+output: html_notebook
+---
+
+# Set up
+
+```{r}
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(blockTools) # For function block()
+library(caret) # For one-hot encoding function dummyVars()
+#library(scales) # For function rescale()
+library(lme4) # For hierarchical modeling
+library(lmerTest) # For additional diagnostics of hierarchical modeling
+library(nbpMatching) #To use 'optimal' algorithm in stratified randomization
+library(binaryLogic) # For function as.binary()
+
+### Setting the working directory to the parent folder of this script (Rstudio only)
+sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
+setwd(sourceDir)
+
+set.seed(1234)
+options(scipen=10)
+```
+
+```{r}
+#Loading the data
+dat <- read_csv("chap4-hotel_booking_case_study.csv", 
+                col_types = cols(
+                  NRDeposit = col_factor(),
+                  IsCanceled = col_factor(),
+                  DistributionChannel = col_factor(),
+                  MarketSegment = col_factor(),
+                  CustomerType = col_factor(),
+                  Children = col_double(),
+                  ADR = col_double(),
+                  PreviousCancellations = col_factor(),
+                  IsRepeatedGuest = col_factor(),
+                  Country = col_character(),
+                  Quarter = col_factor(),
+                  Year = col_double()))
+```
+
+# 1) Traditional regression
+
+a)	Load the data in chap4-hotel_booking_case_study.csv and create a copy of it where all countries representing less than 1% of the data are lumped under “Other”. 
+
+```{r}
+#Reducing the number of values for Country of origin by keeping most frequent countries only
+#and aggregating the remaining ones under "Other"
+countries <- dat %>% 
+  group_by(Country) %>% 
+  summarize(pct = n()/nrow(dat))
+topcountries <- countries %>% 
+  filter(pct >= 0.01)
+dat1 <- dat %>%
+  mutate(Country = ifelse(Country %in% topcountries$Country, Country, "Other")) %>%
+  mutate(Country = as.factor(Country)) %>%
+  select(-IsCanceled)
+```
+
+b)	Run a linear regression of ADR on the following variables: Country, MarketSegment, Quarter, Year, and Children.  
+
+```{r}
+#Linear model
+mod1 <- lm(ADR ~ Country+MarketSegment, data = dat1)
+summary(mod1)
+```
+
+c)	Save the predicted values for all the rows in the data and calculate the average square of residuals ASR1 (i.e., the average of the squares of the difference between the true value and the predicted value)
+
+```{r}
+# Average square of residuals
+pred1 <- predict(mod1)
+MAD1 <- sum(abs(pred1 - dat1$ADR)/nrow(dat1))
+```
+
+# 2) Hierarchical regression
+
+a)	Run a hierarchical linear regression of ADR on the following variables: Country, MarketSegment, Quarter, Year, and Children. 
+
+```{r}
+dat2 <- dat %>%
+  select(-IsCanceled)
+mod2 <- lmer(data=dat2, ADR~MarketSegment+(1|Country))
+summary(mod2)
+```
+
+b)	Save the predicted values for all the rows in the data and calculate the average square of residuals ASR2 (i.e., the average of the squares of the difference between the true value and the predicted value)
+
+```{r}
+# Average square of residuals
+pred2 <- predict(mod2)
+MAD2 <- sum(abs(pred2 - dat2$ADR)/nrow(dat2))
+```
+
+# 3) Comparison
+
+a)	Calculate the difference between the square roots of ASR1 and ASR2. What is the meaning of this number?
+
+```{r}
+diff <- MAD1 - MAD2
+diff
+```
+This number means that the hierarchical regression is more accurate by $0.14 on average.
