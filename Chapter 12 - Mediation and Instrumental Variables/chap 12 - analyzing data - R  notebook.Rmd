@@ -45,24 +45,24 @@ summary(lm(duration~play_area, data=hist_data))
 
 
 ```{r}
-summary(lm(groceries_purchases~play_area, data=hist_data))
+summary(lm(grocery_purchases~play_area, data=hist_data))
 ```
 
 
 ```{r}
-summary(lm(groceries_purchases~duration, data=hist_data))
+summary(lm(grocery_purchases~duration, data=hist_data))
 ```
 
 ```{r}
-summary(lm(groceries_purchases~duration+play_area, data=hist_data))
+summary(lm(grocery_purchases~duration+play_area, data=hist_data))
 ```
 
 ```{r}
 # Bootstrap CI for percentage mediated 
 percentage_mediated_fun <- function(dat){
-  total_effect <- summary(lm(groceries_purchases~play_area, data=dat))$coefficients['play_area1', 'Estimate']
+  total_effect <- summary(lm(grocery_purchases~play_area, data=dat))$coefficients['play_area1', 'Estimate']
   coeff_med1 <- summary(lm(duration~play_area, data=dat))$coefficients['play_area1', 'Estimate']
-  coeff_med2 <- summary(lm(groceries_purchases~duration, data=dat))$coefficients['duration', 'Estimate']
+  coeff_med2 <- summary(lm(grocery_purchases~duration, data=dat))$coefficients['duration', 'Estimate']
   mediated_effect <- coeff_med1 * coeff_med2
   percentage_mediated <- mediated_effect / total_effect
   return(percentage_mediated)
