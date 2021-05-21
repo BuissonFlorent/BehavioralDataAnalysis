@@ -1,9 +1,9 @@
 ---
-title: "R Notebook"
+title: "Chapter 6: Handling Missing Data"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 6: Handling Missing Data
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 6.
 
 ```{r}
 # Common libraries

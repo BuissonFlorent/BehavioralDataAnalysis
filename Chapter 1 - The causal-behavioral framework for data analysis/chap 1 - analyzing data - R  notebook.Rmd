@@ -1,5 +1,5 @@
 ---
-title: "Chapter 1 R Notebook"
+title: "Chapter 1: The Causal-Behavioral Framework for Data Analysis"
 output: html_notebook
 ---
 

@@ -1,9 +1,9 @@
 ---
-title: "R Notebook"
+title: "Chapter 12: Mediation and Instrumental Variables"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 12: Mediation and instrumental variables
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 12.
 
 ```{r}
 # Common libraries

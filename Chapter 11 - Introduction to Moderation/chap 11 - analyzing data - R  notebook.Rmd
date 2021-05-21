@@ -1,9 +1,9 @@
 ---
-title: "R Notebook"
+title: "Chapter 11: Introduction to Moderation"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 11: Introduction to Moderation
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 11.
 
 
 ```{r}

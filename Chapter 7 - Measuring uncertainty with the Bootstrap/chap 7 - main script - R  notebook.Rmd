@@ -3,7 +3,7 @@ title: "Chapter 7: Measuring Uncertainty With the Bootstrap"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 7: Measuring Uncertainty with the Bootstrap
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 7.
 
 # Intro to the Bootstrap: Polling Oneself Up
 

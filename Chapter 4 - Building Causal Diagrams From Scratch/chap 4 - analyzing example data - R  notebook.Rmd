@@ -1,11 +1,9 @@
 ---
-title: "R Notebook"
+title: "Chapter 4: Building Causal Diagrams fFrom Scratch"
 output: html_notebook
 ---
 
-This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 4: Building CDs From Scratch
-
-This script loads the example data, based on data from Antonio, de Almeida & Nunes,  "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126. and analyzes it
+This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 4. This script loads the example data, based on data from Antonio, de Almeida & Nunes,  "Hotel booking demand datasets", Data in Brief, 2019.  https://doi.org/10.1016/j.dib.2018.11.126. and analyzes it.
 
 # Business problem and data setup
 ## Data and libraries
