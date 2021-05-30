@@ -14,7 +14,6 @@ library(ggpubr) #To generate multi-plots
 
 # Chapter-specific libraries
 library(mice)
-library(VIM) # For visualization function md.pattern()
 library(reshape) #For function melt()
 library(psych) #For function logistic()
 
