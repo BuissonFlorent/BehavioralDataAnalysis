@@ -56,7 +56,8 @@ group <- ifelse(assgnt <= 1/K, "control", "treatment")
 ## Sample size and power analysis
 ```{r}
 effect_size <- ES.h(0.1925,0.1825)
-pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.05, power = 0.8, alternative = "greater")
+pwr.2p.test(h = effect_size, n = NULL, sig.level = 0.05, power = 0.8, 
+            alternative = "greater")
 ```
 
 ```{r}

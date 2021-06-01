@@ -213,10 +213,8 @@ power_sim_fun <- function(dat, metric_fun, Nexp = 1000, eff_size = 0, B = 20, co
   i <- 1
   for(m in unique(dat$month)){
     #Sample down the data
-    sample_data <- filter(dat, month==m) %>%
-      dplyr::group_by(rep_ID) %>%
-      slice_sample(n = Nexp) %>%
-      dplyr::ungroup()
+    sample_data <- filter(dat, month==m) %>% dplyr::group_by(rep_ID) %>%
+      slice_sample(n = Nexp) %>% dplyr::ungroup()
     
     for(perm in 0:(Nperm-1)){
       treat <- permutation_gen_fun(perm, stratified_pairs)

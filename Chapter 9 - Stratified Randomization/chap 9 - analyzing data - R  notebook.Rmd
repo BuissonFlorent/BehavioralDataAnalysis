@@ -56,12 +56,12 @@ no_strat_assgnt_fun <- function(dat, Nexp){
     mutate(group = case_when(
       assgnt <= 1/K ~ "ctrl",
       assgnt > 1/K & assgnt <= 2/K ~ "treat1",
-      assgnt > 2/K & assgnt <= 1 ~ "treat2")) %>%
+      assgnt > 2/K ~ "treat2")) %>%
     mutate(group = as.factor(group)) %>%
     select(-assgnt)
   return(dat)
 }
-#no_strat_assgnt <- no_strat_assgnt_fun(hist_data, Nexp = 4998)
+no_strat_assgnt <- no_strat_assgnt_fun(hist_data, Nexp = 5000)
 ```
 
 ```{r}
@@ -170,8 +170,7 @@ treat2_metric_fun <- function(dat){
   lin_model <- lm(BPday~sq_ft+tier+avg_review+group, data = dat)
   summ <- summary(lin_model)
   coeff <- summ$coefficients['grouptreat2', 'Estimate']
-  return(coeff)
-}
+  return(coeff)}
 
 # Bootstrap CI function
 boot_CI_fun <- function(dat, metric_fun, B=20, conf.level=0.9){

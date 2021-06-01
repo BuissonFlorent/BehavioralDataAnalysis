@@ -9,19 +9,18 @@ library(rstudioapi)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
 setwd(sourceDir)
 
-
-
 options(scipen=10)
+set.seed(3)
 
 ##### Functions #####
 
 #Generating the list of centers and reps with the corresponding average CSAT
-reps_gen_fct <- function(Ncenters = 30, Nreps_per_center = 10, Nreps_per_center_sigma = 2){
+reps_gen_fct <- function(Ncenters = 10, Nreps_per_center = 20, Nreps_per_center_sigma = 2){
   set.seed(1234)
   #Generating the centers
   Nreps <- round(rnorm(Ncenters, Nreps_per_center, Nreps_per_center_sigma),0)
-  centers_CSAT_mean <- rnorm(Ncenters, 4, 1.5)
-  centers_CSAT_sd <- rnorm(Ncenters, 1, 0.5)
+  centers_CSAT_mean <- rnorm(Ncenters, 4, 1)
+  centers_CSAT_sd <- rnorm(Ncenters, 1, 0.3)
   
   #Generating the reps
   reps_list <- list()
@@ -38,21 +37,24 @@ reps_gen_fct <- function(Ncenters = 30, Nreps_per_center = 10, Nreps_per_center_
     mutate(rep_ID = 1:nrow(reps)) %>%
     mutate(center_ID = as.factor(center_ID)) %>%
     mutate(rep_ID = as.factor(rep_ID))
-
+  
   return(reps)
 }
 
 #Generating the historical data
-prel_data_gen_fct <- function(reps, Ncalls_rep = 2400){
+prel_data_gen_fct <- function(reps, Ncalls_rep = 3600){
   
   calls_list <- list()
   for(i in 1:nrow(reps)){
-    Ncalls <- round(rnorm(1,Ncalls_rep, Ncalls_rep * 0.25),0)
+    Ncalls <- round(rnorm(1,Ncalls_rep, 50),0)
     age <- round(runif(Ncalls, 20,60), 0)
-    coeff_age <- rnorm(Ncalls, 0.02, 0.01)
+    coeff_age <- rnorm(Ncalls, 0.02, 0.005)
     age_to_reason <- age * 0.01
     reason <- sapply(age_to_reason, function(x) rbern(1,x))
-    coeff_reason <- rnorm(Ncalls, 0.2, 0.2)
+    coeff_reason <- rnorm(Ncalls, 0.2, 0.05)
+    openness <- rnorm(Ncalls, 0, 1.5)
+    coeff_openness <- rnorm(Ncalls, 0.2, 0.05)
+    month <- sample(c(1,2,3), Ncalls, replace = TRUE)
     epsilon <- rnorm(Ncalls, 0, 0.5)
     
     calls_list[[i]] <- data.frame(
@@ -63,6 +65,9 @@ prel_data_gen_fct <- function(reps, Ncalls_rep = 2400){
       coeff_age = coeff_age,
       reason = reason,
       coeff_reason = coeff_reason,
+      openness = openness,
+      coeff_openness = coeff_openness,
+      month = month,
       epsilon = epsilon
     )
   }
@@ -70,13 +75,12 @@ prel_data_gen_fct <- function(reps, Ncalls_rep = 2400){
   
   #Adding call CSAT
   calls <- calls %>%
-    mutate(call_CSAT = rep_CSAT + reason * coeff_reason + age * coeff_age + epsilon)
+    mutate(call_CSAT = rep_CSAT + reason * coeff_reason + age * coeff_age + openness * coeff_openness + epsilon)
   
   #Bounding values between zero and ten
   calls <- calls %>%
     mutate(call_CSAT = ifelse(call_CSAT < 0, 0, call_CSAT)) %>%
     mutate(call_CSAT = ifelse(call_CSAT > 10, 10, call_CSAT))
-  #hist(calls$call_CSAT)
   
   #Converting reason to factor
   calls <- calls %>%
@@ -86,9 +90,23 @@ prel_data_gen_fct <- function(reps, Ncalls_rep = 2400){
     mutate(center_ID = factor(center_ID)) %>%
     mutate(rep_ID = factor(rep_ID))
   
+  # Adding variable for 6-month spend following a booking
+  #simulating the values of the booking probability
+  N <- nrow(calls)
+  intercept <- rlnorm(N, sdlog = 0.5) * 100
+  beta_a <- - rnorm(N,3,1)
+  beta_o <- rnorm(N, 10, 3)
+  beta_c <- rnorm(N, 5, 1.5) 
+  calls <- calls %>%
+    mutate(M6Spend = intercept + beta_a * age + beta_o * openness + beta_c * call_CSAT) %>%
+    mutate(M6Spend = pmax(M6Spend,0))
+  
+  #Determining true coefficients of regression: beta_c = 2.932
+  print(summary(lm(M6Spend ~ age + openness + call_CSAT, data = calls)))
+  
   #Removing scaffolding variables
   calls <- calls %>%
-    select(-epsilon, -coeff_reason,-rep_CSAT, -coeff_age)
+    select(-epsilon, -coeff_reason,-rep_CSAT, -coeff_age, -coeff_openness, -openness)
   
   return(calls)
 }
@@ -128,18 +146,21 @@ blocking_fct <- function(prel_data){
 }
 
 #Generating experimental data
-exp_data_gen_fct <- function(reps, Ncalls_rep = 250, blocked_assgt, effect = 1){
+exp_data_gen_fct <- function(reps, Ncalls_rep, blocked_assgt, effect = 1){
   reps <- reps %>%
     full_join(blocked_assgt, by="center_ID")
-
+  
   calls_list <- list()
   for(i in 1:nrow(reps)){
-    Ncalls <- round(rnorm(1,Ncalls_rep, Ncalls_rep * 0.25),0)
+    Ncalls <- round(rnorm(1,Ncalls_rep, 10),0)
     age <- round(runif(Ncalls, 20,60), 0)
-    coeff_age <- rnorm(Ncalls, 0.02, 0.01)
+    coeff_age <- rnorm(Ncalls, 0.02, 0.005)
     age_to_reason <- age * 0.01
     reason <- sapply(age_to_reason, function(x) rbern(1,x))
-    coeff_reason <- rnorm(Ncalls, 0.2, 0.2)
+    coeff_reason <- rnorm(Ncalls, 0.2, 0.05)
+    openness <- rnorm(Ncalls, 0, 1.5)
+    coeff_openness <- rnorm(Ncalls, 0.2, 0.05)
+    month <- 4
     epsilon <- rnorm(Ncalls, 0, 0.5)
     
     calls_list[[i]] <- data.frame(
@@ -151,6 +172,9 @@ exp_data_gen_fct <- function(reps, Ncalls_rep = 250, blocked_assgt, effect = 1){
       coeff_age = coeff_age,
       reason = reason,
       coeff_reason = coeff_reason,
+      openness = openness,
+      coeff_openness = coeff_openness,
+      month = month,
       epsilon = epsilon
     )
   }
@@ -158,7 +182,7 @@ exp_data_gen_fct <- function(reps, Ncalls_rep = 250, blocked_assgt, effect = 1){
   
   #Adding call CSAT
   calls <- calls %>%
-    mutate(call_CSAT = rep_CSAT + reason * coeff_reason + age * coeff_age + epsilon) %>%
+    mutate(call_CSAT = rep_CSAT + reason * coeff_reason + age * coeff_age + openness * coeff_openness + epsilon) %>%
     mutate(call_CSAT = call_CSAT + ifelse(group == "treat", effect,0))
   
   #Bounding values between zero and ten
@@ -171,9 +195,23 @@ exp_data_gen_fct <- function(reps, Ncalls_rep = 250, blocked_assgt, effect = 1){
   calls <- calls %>%
     mutate(reason = factor(reason, labels = c("payment", "property")))
   
+  # Adding variable for 6-month spend following a booking
+  #simulating the values of the booking probability
+  N <- nrow(calls)
+  intercept <- rlnorm(N, sdlog = 0.5) * 100
+  beta_a <- - rnorm(N,3,1)
+  beta_o <- rnorm(N, 10, 3)
+  beta_c <- rnorm(N, 5, 1.5) 
+  calls <- calls %>%
+    mutate(M6Spend = intercept + beta_a * age + beta_o * openness + beta_c * call_CSAT) %>%
+    mutate(M6Spend = pmax(M6Spend,0))
+  
+  #Determining true coefficients of regression: beta_c = 2.876
+  print(summary(lm(M6Spend ~ age + openness + call_CSAT, data = calls)))
+  
   #Removing scaffolding variables
   calls <- calls %>%
-    select(-epsilon, -coeff_reason,-rep_CSAT, -coeff_age)
+    select(-epsilon, -coeff_reason,-rep_CSAT, -coeff_age, -coeff_openness, -openness)
   
   return(calls)
   
@@ -186,9 +224,11 @@ reps <- reps_gen_fct()
 
 hist_data <- prel_data_gen_fct(reps)
 
+#summary(lm(M6Spend~age+openness+call_CSAT, data=hist_data))
+
 blocked_assgt <- blocking_fct(hist_data)
 
-exp_data <- exp_data_gen_fct(reps, Ncalls_rep = 250, blocked_assgt, effect = 1)
+exp_data <- exp_data_gen_fct(reps, Ncalls_rep = 1200, blocked_assgt, effect = 1)
 
 write_csv(hist_data, "chap10-historical_data.csv")
 write_csv(exp_data, "chap10-experimental_data.csv")
