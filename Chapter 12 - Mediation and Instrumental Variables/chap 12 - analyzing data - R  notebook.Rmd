@@ -115,13 +115,13 @@ summary(S1_mod)
 
 ```{r}
 # Baseline (biased) regression
-lm_mod <- lm(M6Spend~call_CSAT+age, data=exp_data)
+lm_mod <- lm(M6Spend~call_CSAT+age+reason, data=exp_data)
 summary(lm_mod)
 ```
 
 ```{r}
 # IV regression
-iv_mod <- ivreg::ivreg(M6Spend~call_CSAT + age | group + age, data=exp_data)
+iv_mod <- ivreg::ivreg(M6Spend~call_CSAT + age + reason | group + age + reason, data=exp_data)
 summary(iv_mod)
 ```
 
