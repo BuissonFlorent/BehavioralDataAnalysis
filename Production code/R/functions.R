@@ -12,10 +12,13 @@ stratification.data.prep <- function(dat, id.var){
   id <- id %>% mutate_all(as.character)
   dat <- dat %>% select(-eval(id.var))
   
-  #Input validation
-  #NEED TO REMOVE SAPPLY FOR ROBUSTNESS?
+  ### Input validation
+  #MAYBE NEED TO REMOVE SAPPLY FOR ROBUSTNESS?
   if(!all(sapply(dat, function(x) is.numeric(x)|
           is.integer(x)|is.factor(x)))) stop("please format all data columns to numeric, integer or factor")
+  
+  #Stopping if there are NA's
+  if(nrow(dat %>% na.omit()) != nrow(dat)) stop("please address NA's before using this function")
   
   #Handling the identification variable
   dat_out <- id

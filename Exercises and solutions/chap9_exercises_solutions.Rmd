@@ -8,9 +8,16 @@ output: html_notebook
 ```{r}
 options(scipen=10)
 
-library(tidyverse)
-library(rstudioapi)
-library(boot)
+# Common libraries
+suppressMessages(suppressWarnings(library(tidyverse)))
+library(boot) #Required for Bootstrap simulations
+library(rstudioapi) #To load data from local folder
+library(ggpubr) #To generate multi-plots
+
+# Chapter-specific libraries
+library(blockTools) # For function block()
+library(caret) # For one-hot encoding function dummyVars()
+library(scales) # For function rescale()
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
@@ -30,18 +37,117 @@ data <- data %>%
   mutate(group = factor(group, levels=c('ctrl', 'treat1', 'treat2', 'treat3'))) %>%
   mutate(gender = factor(gender, levels=c('male', 'female', 'couple'))) %>%
   mutate(state_pol = factor(state_pol, levels=c('red','blue'))) %>%
-  mutate(county_pol = factor(county_pol, levels=c('red', 'blue')))
-  # Filter on giving
-  #filter(gave == 1) %>% select(-gave)
+  mutate(county_pol = factor(county_pol, levels=c('red', 'blue'))) 
 summary(data)
 ```
+
+# Exercise 1 -- stratified randomization
+
+## 1) Traditional randomization. 
+
+Let’s determine the CI for the difference in donations between two groups with no true differences.
+
+a)	Select only the control group (i.e., subjects with no effect) and delete the Gave variable from it. Create an ID variable that indexes the rows in your dataset. 
+
+```{r}
+data1 <- data %>%
+  #Selecting only rows in control group
+  filter(group == 'ctrl') %>% select(-group) %>%
+  # Deleting Gave variable
+  select(-gave)
+  # Creating ID variable (need to be separated so that data's nrow resets)
+data1 <- data1 %>% 
+  mutate(ID = 1:nrow(data1))
+```
+
+Create a Taste variable which takes with equal probabilities the values “vanilla” and chocolate”. 
+
+```{r}
+set.seed(3)
+data1 <- data1 %>% 
+  mutate(taste = ifelse(runif(nrow(data1), 0,1)>=0.5, 'chocolate', 'vanilla')) %>%
+  mutate(taste = factor(taste, levels = c('chocolate', 'vanilla')))
+```
+
+b) Calculate the 90%-CI for the difference in donation amount between the two taste groups. 
+
+```{r}
+#Defining metric function
+lin_reg_fun <- function(dat){
+  mod <- lm(amount~taste+gender+freq+state_pol+county_pol+dormant, dat)
+  summ <- summary(mod)
+  metric <- summ$coefficients['tastevanilla', 'Estimate']
+  return(metric)
+}
+set.seed(1)
+lin_reg_fun(data1)
+```
+```{r}
+#Bootstrap CI function
+boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
+  #Setting the number of bootstrap samples
+  boot_metric_fun <- function(dat, J){
+    boot_dat <- dat[J,]
+    return(metric_fun(boot_dat))
+  }
+  boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
+  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
+  CI <- confint$percent[c(4,5)]
+  return(CI)
+}
+set.seed(1)
+boot_CI <- boot_CI_fun(dat=data1, metric_fun=lin_reg_fun, conf.level = 0.9, B = 1e3)
+boot_CI
+
+```
+## 2) Stratified randomization
+
+We’ll repeat the process from question 1, but this time stratify the allocation of subjects between vanilla and chocolate taste. Before doing any math: do you expect the CI to be larger or smaller than in the previous question?
+
+Because stratification reduces the noise around the true value, we should expect a smaller CI.
+
+a) a)	Source the necessary functions from the production code folder (stratification.data.prep and stratified.allocation in R, strat_prep_fun and stratified_assgnt_fun in Python).
+
+```{r}
+# You'll need to adjust the source path based on your specific situation
+source('~/BehavioralDataAnalysisGithub/BehavioralDataAnalysis/Production code/R/functions.R', echo=TRUE)
+```
+
+Delete the Taste variable from your data and reassign it through stratified randomization.
+
+```{r}
+stratified_data1 <- data1 %>%
+  #Removing the taste variable so it doesn't affect the distance between points for stratification
+  select(-taste) %>%
+  #Removing cases with NA's from consideration
+  na.omit() %>%
+  stratified.allocation(id.var='ID', group.var.name = 'taste') %>%
+  #Replacing the names of the groups
+  mutate(taste = replace(taste, taste == 'Treatment 1', 'chocolate')) %>%
+  mutate(taste = replace(taste, taste == 'Treatment 2', 'vanilla')) %>%
+  mutate(taste = factor(taste, levels = c('chocolate', 'vanilla')))
+
+head(stratified_data1,5)
+```
+
+b) Calculate the 90%-CI for the difference in donation amount between the new two taste groups. 
+
+```{r}
+set.seed(1)
+boot_CI_strat <- boot_CI_fun(dat=stratified_data1, metric_fun=lin_reg_fun, conf.level = 0.9, B = 1e3)
+boot_CI_strat
+
+```
+As you can see, the CI is a bit narrower (although that depends on the random draws you make), but there's still some significant noise in our estimates. 
+
+# Exercise 2 -- advanced
 
 ```{r}
 # EDA
 ggplot(data, aes(amount)) + geom_histogram()
 summary(lm(amount~group+gender+state_pol+county_pol+freq, data))
 ```
-1. Build a 90%-CI for the regression coefficient representing the effect of race on the probability of getting a call back.
+a)	Calculate the 90%-CI for the effect of each of the matching ratios on the amount given (compared to the control group). 
 
 The 90%-CI for the 1:1 match is approx. [-0.0784; 0.3203].
 The 90%-CI for the 2:1 match is approx. [-0.0155; 0.4176].
@@ -91,8 +197,7 @@ boot_CI2 <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun2, conf.level = 0.9, B =
 boot_CI3 <- boot_CI_fun(dat=data, metric_fun=lin_reg_fun3, conf.level = 0.9, B = 1e3)
 ```
 
-
-
+b)	Is the effect of the 3:1 matching ratio different at the 90% level from the 2:1 ratio? (Trick question!)
 
 ```{r}
 # Metric function for difference
@@ -104,21 +209,10 @@ diff_reg_fun <- function(dat){
   return(metric)
 }
 
-boot_diff_CI <- boot_CI_fun(dat=data, metric_fun=diff_reg_fun, conf.level = 0.8, B = 1000)
+boot_diff_CI <- boot_CI_fun(dat=data, metric_fun=diff_reg_fun, conf.level = 0.9, B = 1e3)
+boot_diff_CI
 ```
-
-# Measuring mediation effect of freq
-
-```{r}
-summary(lm(freq~gender+state_pol+county_pol, data))
-
-
-summary(lm(amount~group+gender+state_pol+county_pol+freq, data))
-
-
-```
-
-
+The "trick" here is that to correctly answer that question, you need to calculate the CI of the difference, you cannot directly compare the two CIs from question a) to each other. As you can see, the difference can be as low as -0.1 and as high as 0.3, which is not the values we would naively get by comparing the bounds of the CIs for the two estimates. 
 
 
 
