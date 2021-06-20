@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Production code for stratified randomization functions and Cramer's V
+Production code for the following functions:
+    - Bootstrap confidence interval
+    - stratified randomization 
+    - Cramer's V
 """
 
 # Common packages
@@ -16,7 +19,25 @@ from sklearn.preprocessing import OneHotEncoder
 from scipy.stats import chi2_contingency 
 from math import sqrt
 
-## Python code (output not shown)
+
+def boot_CI_fun(dat_df, metric_fun, B = 100, conf_level = 0.9):
+  #Setting sample size
+  N = len(dat_df)
+  coeffs = []
+  
+  for i in range(B):
+      sim_data_df = dat_df.sample(n=N, replace = True)
+      coeff = metric_fun(sim_data_df)
+      coeffs.append(coeff)
+  
+  coeffs.sort()
+  start_idx = round(B * (1 - conf_level) / 2)
+  end_idx = - round(B * (1 - conf_level) / 2)
+  
+  confint = [coeffs[start_idx], coeffs[end_idx]]  
+  return(confint)
+
+
 def strat_prep_fun(dat_df, id_var):
     
     #Isolating the identification variable
@@ -27,8 +48,8 @@ def strat_prep_fun(dat_df, id_var):
     dat_df = dat_df.drop([id_var], axis=1)
     
     #Input validation
-    assert dat_df.select_dtypes(exclude = ['int64', 'float64', 'object']).empty,\
-        "please format all data columns to numeric, integer or character (for categorical variables)"
+    assert dat_df.select_dtypes(exclude = ['int64', 'float64', 'object', 'category']).empty,\
+        "please format all data columns to numeric, integer, category or character (for categorical variables)"
     
     ## Handling categorical variables
     cat_df = dat_df.copy().select_dtypes(include = 'object') #Categorical vars
@@ -50,14 +71,20 @@ def strat_prep_fun(dat_df, id_var):
     
     return dat_out_np
 
+
 def stratified_assgnt_fun(dat_df, id_var, n_groups = 2, group_var_name = "group"):
+    
+    #Sampling down to a multiple of our number of groups
+    remainder = len(dat_df) % n_groups
+    if remainder != 0:
+        dat_df = dat_df.sample(len(dat_df) - remainder)
     
     #Prepping the data
     data_np = strat_prep_fun(dat_df, id_var)
     
     #Isolating the identification variable
     dat_ID = data_np[:,0].tolist() # Extract ID for later join
-    data_np = data_np[:,1:].astype(np.float)
+    data_np = data_np[:,1:].astype(float)
     
     ## Matching algorithm
     
@@ -111,6 +138,7 @@ def stratified_assgnt_fun(dat_df, id_var, n_groups = 2, group_var_name = "group"
     assgnt_df[id_var] = dat_ID
     dat_df = dat_df.merge(assgnt_df, on=id_var, how='inner')
     return dat_df
+
 
 def cramer_v(var1, var2):
     

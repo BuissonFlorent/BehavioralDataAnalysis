@@ -42,6 +42,10 @@ group_var_name = "group"
 
 class TestStratifiedAssgntFun(unittest.TestCase):
     
+    # function handles issues with number of rows
+    def test_number_rows(self):
+        pass
+            
     # function output is correctly formatted
     def test_output_formatting(self):
         simplest_output = stratified_assgnt_fun(simplest_input, id_var)
@@ -51,7 +55,9 @@ class TestStratifiedAssgntFun(unittest.TestCase):
         
     def test_expected_simple_outcome(self):
         simplest_output = stratified_assgnt_fun(simplest_input, id_var)
-        self.assertTrue(simplest_output.loc[simplest_output['name'] == 'Anna','group'].tolist() ==\
+        self.assertTrue(simplest_output.loc[simplest_output['name'] == 'Anna','group'].tolist() !=\
+                         simplest_output.loc[simplest_output['name'] == 'Barbara','group'].tolist())
+        self.assertTrue(simplest_output.loc[simplest_output['name'] == 'Amalric','group'].tolist() !=\
                          simplest_output.loc[simplest_output['name'] == 'Bob','group'].tolist())
         
         
