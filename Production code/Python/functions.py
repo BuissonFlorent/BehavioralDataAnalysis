@@ -74,10 +74,11 @@ def strat_prep_fun(dat_df, id_var):
 
 def stratified_assgnt_fun(dat_df, id_var, n_groups = 2, group_var_name = "group"):
     
-    #Sampling down to a multiple of our number of groups
+    #Handling situations where the number of rows is not divisible by the number
+    #of groups. NOTE: I'll try to implement a better solution when I can
     remainder = len(dat_df) % n_groups
     if remainder != 0:
-        dat_df = dat_df.sample(len(dat_df) - remainder)
+        dat_df = dat_df.head(len(dat_df)-remainder)
     
     #Prepping the data
     data_np = strat_prep_fun(dat_df, id_var)
@@ -91,36 +92,40 @@ def stratified_assgnt_fun(dat_df, id_var, n_groups = 2, group_var_name = "group"
     #Setup
     N = len(data_np)
     match_len = n_groups - 1 # Number of matches we want to find
-    match_idx = match_len - 1 # Accounting for 0-indexing
     
     #Calculate distance matrix
     from scipy.spatial import distance_matrix
     d_mat = distance_matrix(data_np, data_np)
     np.fill_diagonal(d_mat,N+1)
     # Set up variables
-    available = [i for i in range(N)]
-    available_temp = available.copy()
+    rows = [i for i in range(N)]
+    available = rows.copy()
     matches_lst = []
-    lim = int(N/match_len)
+    matches_lst_lim = int(N/n_groups)
     
-    closest = np.argpartition(d_mat, kth=match_idx,axis=1)
+    closest = np.argpartition(d_mat, kth=match_len-1,axis=1)
     
-    for n in available:
-        #print("n = ", n)
-        if len(matches_lst) == lim: break
-        if n in available_temp:
-            for match_lim in range(match_idx,N-1):
-                #print("match_lim = ", match_lim)
-                possible_matches = closest[n,:match_lim].tolist()
-                matches = list(set(available_temp) & set(possible_matches))
-                #print("len(matches) = ",  len(matches))
+    for n in rows:
+        if len(matches_lst) == matches_lst_lim: break
+        if n in available:
+            for search_lim in range(match_len, N):
+                closest_matches = closest[n,:search_lim].tolist()
+                matches = list(set(available) & set(closest_matches))
                 if len(matches) == match_len:
                     matches.append(n)
                     matches_lst.append(matches)
-                    available_temp = [m for m in available_temp if m not in matches]
+                    available = [m for m in available if m not in matches]
+                    break
+                #Handling ties from argpartition
+                elif len(matches) > match_len:
+                    matches = [x for _, x in sorted(zip(d_mat[n,matches].tolist(), matches))]
+                    matches = matches[0:match_len]
+                    matches.append(n)
+                    matches_lst.append(matches)
+                    available = [m for m in available if m not in matches]
                     break
                 else:
-                    closest[n,:] = np.argpartition(d_mat[n,:], kth=match_lim)
+                    closest[n,:] = np.argpartition(d_mat[n,:], kth=search_lim)
                     
     #Assigning experimental groups to the matched sets
     exp_grps = np.array(list(range(n_groups))*(int(N/n_groups))).reshape((int(N/n_groups),n_groups))

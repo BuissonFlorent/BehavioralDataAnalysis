@@ -9,13 +9,17 @@ import unittest
 
 from functions import stratified_assgnt_fun
 
-
-
 #Input datasets
 simplest_input = pd.DataFrame({
   'name': ["Anna", "Amalric", "Barbara", "Bob"],
   'gender': ["F", "M", "F", "M"],
   'age': [40, 20, 41, 21]
+}) 
+
+dupes_input = pd.DataFrame({
+  'name': ["Anna", "Amalric", "Barbara", "Bob", "Carole", "Charles", "Denise", "Danny"],
+  'gender': ["F", "M", "F", "M", "F", "M", "F", "M"],
+  'age': [40, 20, 41, 21, 40, 20, 41, 21]
 }) 
 
 character_input = pd.DataFrame({
@@ -44,7 +48,7 @@ class TestStratifiedAssgntFun(unittest.TestCase):
     
     # function handles issues with number of rows
     def test_number_rows(self):
-        pass
+        dupes_output =  stratified_assgnt_fun(dupes_input, id_var, n_groups = 3)
             
     # function output is correctly formatted
     def test_output_formatting(self):
@@ -59,7 +63,10 @@ class TestStratifiedAssgntFun(unittest.TestCase):
                          simplest_output.loc[simplest_output['name'] == 'Barbara','group'].tolist())
         self.assertTrue(simplest_output.loc[simplest_output['name'] == 'Amalric','group'].tolist() !=\
                          simplest_output.loc[simplest_output['name'] == 'Bob','group'].tolist())
-        
-        
+            
+    def test_dupes_input(self):
+        dupes_output =  stratified_assgnt_fun(dupes_input, id_var, n_groups = 2)
+        self.assertEqual(dupes_output[group_var_name].value_counts().tolist(), [4,4])
+             
 if __name__ == '__main__':
     unittest.main()
