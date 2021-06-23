@@ -47,7 +47,7 @@ summary(data)
 
 Let’s determine the CI for the difference in donations between two groups with no true differences.
 
-a)	Select only the control group (i.e., subjects with no effect) and delete the Gave variable from it. Create an ID variable that indexes the rows in your dataset. 
+a)	Select only the control group (i.e., subjects with no effect) and delete the Group variable from it. Create an ID variable that indexes the rows in your dataset. 
 
 ```{r}
 data1 <- data %>%
