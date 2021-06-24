@@ -99,8 +99,7 @@ num_cor
 ```{r}
 corrplot.mixed(num_cor, lower.col = "black", number.cex = .7)
 ```
-
-
+## Relationships between categorical variables
 ```{r}
 ### Calculating correlation table for all categorical variables
 
