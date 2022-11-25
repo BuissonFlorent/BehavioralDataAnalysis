@@ -1,10 +1,37 @@
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(blockTools) # For function block()
 library(caret) # For one-hot encoding function dummyVars()
 library(scales) # For function rescale()
 
+# Bootstrap CI function
+boot.CI <- function(dat, metric_fun, B=20, conf.level=0.9){
+  
+  #Validating the inputs
+  if(nrow(dat) == 0) stop("the data provided is empty")
+  if(B <= 0) stop("the value provided for the number of Bootstrap simulations is negative")
+  if(conf.level <= 0) stop("the value provided for the confidence level is negative")
+  
+  #Calculating and validating the offset
+  offset = round(B * (1 - conf.level) / 2)
+  if(B + 1 - 2*offset <= 1) stop("the number of Bootstrap simulations is too small in relation to the confidence level")
+  
+  # NOTE: towards the end of writing the book, I discovered that sapply generally
+  # gives better performance than the boot library
+  boot_vec <- sapply(1:B, function(x){
+    metric_fun(slice_sample(dat, n = nrow(dat), replace = TRUE))})
+  if(any(is.na(boot_vec))) stop("the metric function returned an NA, ")
+  boot_vec <- sort(boot_vec, decreasing = FALSE)
+  
+  lower_bound <- boot_vec[offset]
+  upper_bound <- boot_vec[B+1-offset]
+  CI <- c(lower_bound, upper_bound)
+  return(CI)
+}
+
 # Function to prep the data for stratified randomization
 stratification.data.prep <- function(dat, id.var){
+  
+  # Early input validation
+  if(nrow(dat) == 0) stop("the data provided is empty")
   
   #Isolating the identification variable
   if(!(id.var %in% colnames(dat))) stop("the id.var string doesn't match any column name")
@@ -12,7 +39,7 @@ stratification.data.prep <- function(dat, id.var){
   id <- id %>% mutate_all(as.character)
   dat <- dat %>% select(-eval(id.var))
   
-  ### Input validation
+  # Further input validation
   #MAYBE NEED TO REMOVE SAPPLY FOR ROBUSTNESS?
   if(!all(sapply(dat, function(x) is.numeric(x)|
           is.integer(x)|is.factor(x)))) stop("please format all data columns to numeric, integer or factor")
@@ -57,6 +84,11 @@ stratification.data.prep <- function(dat, id.var){
 stratified.allocation <- function(dat, id.var, n.groups = 2, 
                                   group.var.name = "group",
                                   algorithm = "naiveGreedy"){
+  
+  # Early input validation
+  if(nrow(dat) == 0) stop("the data provided is empty")
+  if(!(algorithm %in% c("optGreedy", "optimal", "naiveGreedy",
+                        "randGreedy", "sortGreedy"))) stop("the algorithm name provided is not in the list of algorithms implemented")
   
   #Converting id variable to character
   dat[[id.var]] <- as.character(dat[[id.var]])

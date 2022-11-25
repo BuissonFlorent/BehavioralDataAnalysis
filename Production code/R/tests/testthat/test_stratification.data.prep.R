@@ -33,8 +33,6 @@ numeric_input <- tibble(
   height = c(6, 5, 6.1, 5.1)
 )
 
-
-
 simplest_output <- stratification.data.prep(simplest_input, id.var = 'name')
 
 test_that("function output is correctly formatted", {
@@ -53,9 +51,4 @@ test_that("input validation errors are caught",{
 test_that("output is as expected for simple cases", {
   expect_true(max(simplest_output %>% select_if(is.numeric))<=1)
   expect_true(min(simplest_output %>% select_if(is.numeric))>=0)
-})
-
-test_that("function works with special but legal inputs", {
-  expect_warning(stratification.data.prep(character_input, id.var = 'name'),
-                 "The data has no numeric variables. Results may be unstable.")
 })
