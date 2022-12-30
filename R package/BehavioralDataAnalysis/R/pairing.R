@@ -1,4 +1,4 @@
-#' Create a stratified assignment (aka. pair matching)
+#' Creates a list of pairs of rows close to each other
 #'
 #' @param df data to use
 #' @param id column(s) used for identification
@@ -14,19 +14,60 @@
 
 
 pairing <- function(df, id, n.groups = 2){
+
+  # Early input validation
   N <- nrow(df)
+  if(N == 0) stop("the data provided is empty")
+
+  #Isolating the identification variable
+  if(!(id %in% colnames(dat))) stop("the id string doesn't match any column name")
+
+  # Further input validation
+  #MAYBE NEED TO REMOVE SAPPLY FOR ROBUSTNESS?
+  if(!all(sapply(df, function(x) is.numeric(x)|
+                 is.integer(x)|is.factor(x)))) stop("please format all data columns to numeric, integer or factor")
+
+  #Stopping if there are NA's
+  if(nrow(df %>% na.omit()) != nrow(df)) stop("please address NA's before using this function")
+
+
+
+
+
 
   # Extracting the matching variables for distance measurement
   matching_vars <- df[, !names(df) %in% id]
 
-  matching_vars <- matching_vars %>% dplyr::mutate(dplyr::across(.fns = min_max_norm))
+  #Handling numeric variables
+  normalized_vars <- data.frame(nrow(matching_vars))
+  if(any(sapply(matching_vars, class)=='numeric')){
+    num_vars <- matching_vars %>%
+      dplyr::select_if(function(x) is.numeric(x)|is.integer(x))
+
+    #Normalizing numeric variables
+    normalized_vars <- num_vars %>%
+      dplyr::mutate(dplyr::across(.fns = scales::rescale))
+  } else {warning("The data has no numeric variables. Results may be unstable.")}
+
+  #Handling categorical variables
+  if(any(sapply(matching_vars, class)=='factor'|sapply(matching_vars, class)=='character')){
+    cat_vars <- matching_vars %>%
+      dplyr::select_if(function(x) is.factor(x)|is.character(x)) %>%
+      dplyr::mutate(dplyr::across(.fns = as.factor))
+
+    #One-hot encoding categorical variables
+    normalized_cat_vars <- as.data.frame(stats::model.matrix( ~.-1, data = cat_vars))
+    normalized_vars <- normalized_vars %>% cbind(normalized_cat_vars)
+  }
+
+
 
   # Setting parameters for the matching
   pairs_lst_lim <- floor(N/n.groups)
-  pair_len <- n.groups - 1 # Number of matches we want to find for each row
+  nb_matches_needed <- n.groups - 1 # Number of matches we want to find for each row
 
   #Calculating distance matrix
-  d_mat <- matching_vars %>%
+  d_mat <- normalized_vars %>%
     stats::dist(method = 'euclidean', diag = TRUE, upper = TRUE) %>%
     as.matrix()
   diag(d_mat) <- N + 1
@@ -37,15 +78,15 @@ pairing <- function(df, id, n.groups = 2){
   for(c in 1:N){ # Iterating through the columns
     if(length(pairs_lst) == pairs_lst_lim) { break } # Exiting the loop if we have enough pairs already
     if(!(c %in% available)){ next } # Going to next iteration of the loop if the subject c is not available anymore
-    for(search_lim in pair_len:N){
+    for(search_lim in nb_matches_needed:N){
       closest_candidates <- argpartsort(d_mat[,c], search_lim)
       matches <- intersect(available, closest_candidates)
-      if(length(matches) == pair_len){
+      if(length(matches) == nb_matches_needed){
         pair <- list(append(matches, c)) # Adding the subject c to its list of matches to form a pair
         pairs_lst <- append(pairs_lst, pair)
         available <- setdiff(available, unlist(pair))
         break
-      } else if(length(matches) > pair_len){
+      } else if(length(matches) > nb_matches_needed){
         # Resolving ties
       }
       # Otherwise, redo the loop for search_lim += 1
@@ -53,23 +94,6 @@ pairing <- function(df, id, n.groups = 2){
   }
   return(pairs_lst)
 }
-
-
-### segment of code to put in a different function ###
-
-# Assigning experimental groups to the matched pairs
-# N_pairs <- length(matches_lst)
-# exp_grps <- lapply(1:N_pairs, function(x) list(0,1))
-# exp_grps <- lapply(exp_grps, function(x) sample(x))
-# exp_grps <- unlist(exp_grps)
-# matches_lst <- unlist(matches_lst)
-#
-# pairs_df <- tibble(
-#   id = matches_lst,
-#   grp = exp_grps
-# )
-# pairs_df <- pairs_df[order(pairs_df$id),]
-
 
 ##### Auxiliary functions #####
 argpartsort <- function(vec, n){
