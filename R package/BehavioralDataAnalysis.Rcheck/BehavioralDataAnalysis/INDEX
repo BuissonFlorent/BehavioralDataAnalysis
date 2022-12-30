@@ -1,0 +1,6 @@
+df_char                 Data frame with character variable
+df_num                  Data frame with numeric variables
+pairing                 Creates a list of pairs of rows close to each
+                        other
+strat_assign            Create a stratified assignment (aka. pair
+                        matching)

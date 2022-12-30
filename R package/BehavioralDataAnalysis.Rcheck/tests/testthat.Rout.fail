@@ -1,0 +1,107 @@
+
+R version 4.2.2 (2022-10-31 ucrt) -- "Innocent and Trusting"
+Copyright (C) 2022 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # This file is part of the standard setup for testthat.
+> # It is recommended that you do not modify it.
+> #
+> # Where should you do additional test configuration?
+> # Learn more about the roles of various files in:
+> # * https://r-pkgs.org/tests.html
+> # * https://testthat.r-lib.org/reference/test_package.html#special-files
+> 
+> library(testthat)
+> library(BehavioralDataAnalysis)
+> 
+> test_check("BehavioralDataAnalysis")
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 2 ]
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Error ('test-pairing.R:6'): pairing works on numeric data ───────────────────
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-pairing.R:6:2
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─BehavioralDataAnalysis::pairing(df_num, "id")
+ 5.   └─base::sapply(...)
+ 6.     └─base::lapply(X = X, FUN = FUN, ...)
+ 7.       └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-pairing.R:13'): pairing works when the number of rows isn't divisible by the number of groups ──
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-pairing.R:13:2
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─BehavioralDataAnalysis::pairing(df1, "id")
+ 5.   └─base::sapply(...)
+ 6.     └─base::lapply(X = X, FUN = FUN, ...)
+ 7.       └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-pairing.R:17'): pairing works with character data ──────────────
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-pairing.R:17:2
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─BehavioralDataAnalysis::pairing(df_char, "id")
+ 5.   └─base::sapply(...)
+ 6.     └─base::lapply(X = X, FUN = FUN, ...)
+ 7.       └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-pairing.R:29'): pairing works with categorical data ────────────
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-pairing.R:29:2
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─BehavioralDataAnalysis::pairing(df1, "id")
+ 5.   └─base::sapply(...)
+ 6.     └─base::lapply(X = X, FUN = FUN, ...)
+ 7.       └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-strat_assign.R:2'): stratified assignment works on numeric data ──
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. └─BehavioralDataAnalysis::strat_assign(df_num, id = "id") at test-strat_assign.R:2:2
+ 2.   └─BehavioralDataAnalysis::pairing(df, id = id, n.groups = n.groups)
+ 3.     └─base::sapply(...)
+ 4.       └─base::lapply(X = X, FUN = FUN, ...)
+ 5.         └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-strat_assign.R:12'): stratified assignment works when the number of rows isn't divisible by the number of groups ──
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. └─BehavioralDataAnalysis::strat_assign(df1, id = "id") at test-strat_assign.R:12:2
+ 2.   └─BehavioralDataAnalysis::pairing(df, id = id, n.groups = n.groups)
+ 3.     └─base::sapply(...)
+ 4.       └─base::lapply(X = X, FUN = FUN, ...)
+ 5.         └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+── Error ('test-strat_assign.R:19'): stratified assignment works with character data ──
+Error in `is.numeric(x) | is.integer(x) | is.factor(x) | is.character`: operations are possible only for numeric, logical or complex types
+Backtrace:
+    ▆
+ 1. └─BehavioralDataAnalysis::strat_assign(df_char, id = "id") at test-strat_assign.R:19:2
+ 2.   └─BehavioralDataAnalysis::pairing(df, id = id, n.groups = n.groups)
+ 3.     └─base::sapply(...)
+ 4.       └─base::lapply(X = X, FUN = FUN, ...)
+ 5.         └─BehavioralDataAnalysis (local) FUN(X[[i]], ...)
+
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 2 ]
+Error: Test failures
+Execution halted

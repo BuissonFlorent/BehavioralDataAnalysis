@@ -26,7 +26,13 @@ pairing <- function(df, id, n.groups = 2){
 
   # Further input validation
   #MAYBE NEED TO REMOVE SAPPLY FOR ROBUSTNESS?
-  if(!all(sapply(df, function(x) is.numeric(x)| is.integer(x)| is.factor(x)| is.character(x)))) stop("please format all data columns to numeric, integer, factor or character (which will be treated as factor)")
+  if(!all(sapply(df, function(x) is.numeric(x)|
+                 is.integer(x)|is.factor(x)|is.character))) stop("please format all data columns to numeric, integer, factor or character (which will be treated as factor)")
+
+
+
+
+
 
   # Extracting the matching variables for distance measurement
   matching_vars <- df[, !names(df) %in% id]
@@ -53,8 +59,9 @@ pairing <- function(df, id, n.groups = 2){
     normalized_vars <- normalized_vars %>% cbind(normalized_cat_vars)
   }
 
+
+
   # Setting parameters for the matching
-  N <- nrow(df)
   pairs_lst_lim <- floor(N/n.groups)
   nb_matches_needed <- n.groups - 1 # Number of matches we want to find for each row
 
