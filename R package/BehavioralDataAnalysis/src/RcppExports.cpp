@@ -10,21 +10,21 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// BDA_partial_sort
-NumericVector BDA_partial_sort(NumericVector x, int n);
-RcppExport SEXP _BehavioralDataAnalysis_BDA_partial_sort(SEXP xSEXP, SEXP nSEXP) {
+// cpp_argpartsort
+NumericVector cpp_argpartsort(NumericVector x, int n);
+RcppExport SEXP _BehavioralDataAnalysis_cpp_argpartsort(SEXP xSEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(BDA_partial_sort(x, n));
+    rcpp_result_gen = Rcpp::wrap(cpp_argpartsort(x, n));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BehavioralDataAnalysis_BDA_partial_sort", (DL_FUNC) &_BehavioralDataAnalysis_BDA_partial_sort, 2},
+    {"_BehavioralDataAnalysis_cpp_argpartsort", (DL_FUNC) &_BehavioralDataAnalysis_cpp_argpartsort, 2},
     {NULL, NULL, 0}
 };
 
