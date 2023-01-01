@@ -90,10 +90,7 @@ pairing <- function(df, id, n.groups = 2){
 ##### Auxiliary functions #####
 argpartsort <- function(vec, n){
   # Returns the indices of the n smallest values
-  sorted <- sort(vec, n = n)
-  max_sorted <- max(sorted[1:n])
-  indices <- which(vec <= max_sorted)
-  return(indices)
+  return(order(vec)[1:n])
 }
 
 # Normalizing all the numeric vectors in matching_vars

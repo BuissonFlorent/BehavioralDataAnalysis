@@ -3,4 +3,7 @@
 export("%>%")
 export(pairing)
 export(strat_assign)
+import(Rcpp)
+importFrom(Rcpp,evalCpp)
 importFrom(magrittr,"%>%")
+useDynLib(BehavioralDataAnalysis, .registration = TRUE)
