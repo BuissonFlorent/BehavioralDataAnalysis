@@ -6,10 +6,6 @@ library(profvis)
 library(microbenchmark)
 #library(BehavioralDataAnalysis)
 
-Sys.setenv(BINPREF = "C:/rtools42/x86_64-w64-mingw32.static.posix/bin/")
-
-
-
 
 mpg <- ggplot2::mpg
 mpg$id <- as.character(1:nrow(mpg))
