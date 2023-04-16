@@ -9,15 +9,11 @@ This is the [R Markdown](http://rmarkdown.rstudio.com) Notebook for chapter 8.
 ```{r}
 # Common libraries
 suppressMessages(suppressWarnings(library(tidyverse)))
-library(boot)
+library(BehavioralDataAnalysis)
 library(rstudioapi)
 
 # Chapter-specific libraries
 library(pwr) # For traditional power analysis
-
-# Libraries for high-performance Bootstrap
-library(Rfast)
-library(doParallel)
 
 ### Setting the working directory to the parent folder of this script (Rstudio only)
 sourceDir <- rstudioapi::getActiveDocumentContext()$path %>% str_extract("^.+/")
@@ -29,8 +25,8 @@ options(scipen=10)
 
 ```{r}
 #Reading the data
-hist_data <- read_csv("chap8-historical_data.csv")
-exp_data <- read_csv("chap8-experimental_data.csv")
+hist_data <- read_csv("chap8-historical_data.csv", show_col_types = FALSE)
+exp_data <- read_csv("chap8-experimental_data.csv", show_col_types = FALSE)
 ```
 
 ```{r}
@@ -87,26 +83,10 @@ log_reg_fun <- function(dat){
 
 
 ```{r}
-#Bootstrap CI function
-boot_CI_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
-  #Setting the number of bootstrap samples
-  boot_metric_fun <- function(dat, J){
-    boot_dat <- dat[J,]
-    return(metric_fun(boot_dat))
-  }
-  boot.out <- boot(data=dat, statistic=boot_metric_fun, R=B)
-  confint <- boot.ci(boot.out, conf = conf.level, type = c('perc'))
-  CI <- confint$percent[c(4,5)]
-  return(CI)
-}
-```
-
-
-```{r}
 # Decision function
 decision_fun <- function(dat, metric_fun, B = 100, conf.level = 0.9){
-  boot_CI <- boot_CI_fun(dat, metric_fun, B = B, conf.level = conf.level)
-  decision <- ifelse(boot_CI[1]>0,1,0)
+  boot_ci_value <- boot_ci(dat, metric_fun, B = B, conf.level = conf.level)
+  decision <- ifelse(boot_ci_value[1]>0,1,0)
   return(decision)
 }
 ```
@@ -155,9 +135,9 @@ power_sim_fun <- function(dat, metric_fun, Nexp, eff_size, Nsim,
   power <- mean(unlist(power_list))
   return(power)
 }
-set.seed(1)
+set.seed(1234)
 power_sim_fun(dat=hist_data, metric_fun = log_reg_fun, Nexp = 4e4, 
-              eff_size=0.01, Nsim=10)
+              eff_size=0.01, Nsim=20)
 ```
 
 
@@ -306,7 +286,7 @@ summary(log_mod_exp)
 
 ```{r}
 ### Calculating Bootstrap CI
-boot_CI_fun(exp_data, metric_fun = log_reg_fun)
+boot_ci(exp_data, metric_fun = log_reg_fun)
 ```
 
 ```{r}
@@ -337,5 +317,5 @@ diff_prob_fun(exp_data, reg_model = log_mod_exp)
 
 ```{r}
 ### Calculating Bootstrap interval for this difference
-boot_CI_fun(exp_data, diff_prob_fun)
+boot_ci(exp_data, diff_prob_fun)
 ```
