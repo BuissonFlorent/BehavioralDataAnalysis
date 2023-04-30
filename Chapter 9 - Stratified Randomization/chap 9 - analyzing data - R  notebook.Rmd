@@ -57,7 +57,7 @@ no_strat_assgnt_fun <- function(dat, Nexp){
     mutate(grp = factor(grp))
   return(dat)
 }
-no_strat_assgnt_dat <- no_strat_assgnt_fun(hist_data, Nexp = 999)
+no_strat_assgnt_data <- no_strat_assgnt_fun(hist_data, Nexp = 999)
 ```
 
 ```{r}
@@ -72,7 +72,7 @@ no_strat_assgnt_K_fun <- function(dat, Nexp, K){
     mutate(grp = factor(grp))
   return(dat)
 }
-no_strat_assgnt_dat <- no_strat_assgnt_K_fun(hist_data, Nexp = 2000, K = 4)
+no_strat_assgnt_data <- no_strat_assgnt_K_fun(hist_data, Nexp = 2000, K = 4)
 ```
 
 
@@ -160,14 +160,14 @@ single_sim_fun <- function(dat, metric_fun, Nexp, eff_size, B = 100,
     #extract the ID and group assignment
     select(ID, grp)
   
-  sim_data <- sample_month_dat %>%
+  sim_dat <- sample_month_dat %>%
     #Apply assignment to full data
     inner_join(stratified_assgnt, by="ID") %>%
     #Add target effect size
     mutate(BPday = ifelse(grp == 'treat2', BPday + eff_size, BPday))
   
   #Calculate the decision (we want it to be 1 for a positive effect size)
-  decision <- decision_fun(sim_data, metric_fun, B = B, conf.level = conf.level)
+  decision <- decision_fun(sim_dat, metric_fun, B = B, conf.level = conf.level)
   return(decision)
 }
 sim_decision <- single_sim_fun(hist_data, treat2_metric_fun, Nexp=999, eff_size=2)
